@@ -1,3 +1,4 @@
+import "dotenv/config";
 import Fastify from "fastify";
 
 const app = Fastify({ logger: true });
@@ -8,7 +9,8 @@ app.get("/health", async () => {
 
 const start = async () => {
   try {
-    await app.listen({ port: 3000 });
+    const port = Number(process.env.PORT) || 3000;
+    await app.listen({ port });
   } catch (err) {
     app.log.error(err);
     process.exit(1);

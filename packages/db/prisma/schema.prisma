@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RolUsuario {
+  ADMIN
+  GERENTE
+  CAFETERIA
+  CARRITO
+  PRODUCCION
+  DOMICILIARIO
+}
+
+enum TipoSede {
+  BODEGA_CENTRAL
+  CAFETERIA
+  CARRITO
+  CLINICA_VENDING
+  ADMINISTRATIVA
+}
+
+model Empresa {
+  id              String   @id @default(uuid())
+  nit             String   @unique
+  dv              Int
+  razonSocial     String
+  nombreComercial String?
+
+  direccion       String?
+  telefono        String?
+  email           String?
+  ciudad          String?
+  responsableIva  Boolean  @default(true)
+  responsableInc  Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  sedes    Sede[]
+  usuarios Usuario[]
+
+  @@map("empresas")
+}
+
+model Sede {
+  id        String   @id @default(uuid())
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  nombre    String
+  tipo      TipoSede
+  ciudad    String?
+  direccion String?
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios Usuario[]
+
+  @@map("sedes")
+}
+
+
+model Usuario {
+  id             String     @id @default(uuid())
+  empresaId      String
+  empresa        Empresa    @relation(fields: [empresaId], references: [id])
+  nombreCompleto String
+  documento      String?    @unique
+  email          String?    @unique
+  passwordHash   String?
+  pinHash        String?
+  rol            RolUsuario
+  sedeId         String?
+  sede           Sede?      @relation(fields: [sedeId], references: [id])
+  activo         Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@map("usuarios")
+}
