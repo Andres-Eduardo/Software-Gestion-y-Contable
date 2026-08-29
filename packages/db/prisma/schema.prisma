@@ -42,6 +42,9 @@ model Empresa {
 
   sedes    Sede[]
   usuarios Usuario[]
+  terceros Tercero[]
+  productos Producto[]
+  movimientosInventario MovimientoInventario[]
 
   @@map("empresas")
 }
@@ -59,6 +62,9 @@ model Sede {
   updatedAt DateTime @updatedAt
 
   usuarios Usuario[]
+  turnos Turno[]
+  movimientosOrigen MovimientoInventario[] @relation("MovOrigen")
+  movimientosDestino MovimientoInventario[] @relation("MovDestino")
 
   @@map("sedes")
 }
@@ -80,5 +86,175 @@ model Usuario {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
+  turnosApertura Turno[]    @relation("TurnoApertura")
+  turnosCierre   Turno[]    @relation("TurnoCierre")
+  movimientosSolicita MovimientoInventario[] @relation("MovSolicita")
+  movimientosDespacha MovimientoInventario[] @relation("MovDespacha")
+  movimientosConfirma MovimientoInventario[] @relation("MovConfirma")
+
   @@map("usuarios")
+}
+
+enum TipoUnidad {
+  PESO
+  VOLUMEN
+  UNIDAD
+}
+
+enum TipoPersona {
+  NATURAL
+  JURIDICA
+}
+
+enum TipoDocumento {
+  CC
+  NIT
+  CE
+  PASAPORTE
+}
+
+enum TipoProducto {
+  INSUMO
+  VENDIBLE_PROPIO
+  VENDIBLE_REVENTA
+}
+
+model UnidadMedida {
+  id      String     @id @default(uuid())
+  nombre  String
+  simbolo String
+  tipo    TipoUnidad
+
+  productos Producto[]
+
+  @@map("unidades_medida")
+}
+
+model Tercero {
+  id              String        @id @default(uuid())
+  empresaId       String
+  empresa         Empresa       @relation(fields: [empresaId], references: [id])
+  tipoPersona     TipoPersona
+  tipoDocumento   TipoDocumento
+  numeroDocumento String
+  dv              Int?
+  nombreCompleto  String
+  nombreComercial String?
+  email           String?
+  telefono        String?
+  direccion       String?
+  ciudad          String?
+  esCliente       Boolean       @default(true)
+  esProveedor     Boolean       @default(false)
+  activo          Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([empresaId, numeroDocumento])
+  @@map("terceros")
+}
+
+model Producto {
+  id             String       @id @default(uuid())
+  empresaId      String
+  empresa        Empresa      @relation(fields: [empresaId], references: [id])
+  codigo         String
+  nombre         String
+  descripcion    String?
+  tipo           TipoProducto
+  unidadMedidaId String
+  unidadMedida   UnidadMedida @relation(fields: [unidadMedidaId], references: [id])
+  precioVenta    Decimal?     @db.Decimal(12, 2)
+  aplicaInc      Boolean      @default(false)
+  activo         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  movimientos MovimientoInventario[]
+
+  @@unique([empresaId, codigo])
+  @@map("productos")
+}
+
+enum EstadoTurno {
+  ABIERTO
+  CERRADO
+}
+
+enum TipoMovimientoInventario {
+  COMPRA_ENTRADA
+  TRASLADO
+  VENTA_SALIDA
+  PRODUCCION_CONSUMO
+  PRODUCCION_INGRESO
+  MERMA
+}
+
+enum EstadoMovimientoInventario {
+  SOLICITADO
+  DESPACHADO
+  CONFIRMADO
+  RECHAZADO
+}
+
+model MotivoMerma {
+  id          String  @id @default(uuid())
+  nombre      String
+  afectaCosto Boolean @default(true)
+
+  movimientos MovimientoInventario[]
+
+  @@map("motivos_merma")
+}
+
+model Turno {
+
+  id                      String      @id @default(uuid())
+  sedeId                  String
+  sede                    Sede        @relation(fields: [sedeId], references: [id])
+  usuarioAperturaId       String
+  usuarioApertura         Usuario     @relation("TurnoApertura", fields: [usuarioAperturaId], references: [id])
+  usuarioCierreId         String?
+  usuarioCierre           Usuario?    @relation("TurnoCierre", fields: [usuarioCierreId], references: [id])
+  fechaApertura           DateTime    @default(now())
+  fechaCierre             DateTime?
+  efectivoInicial         Decimal     @db.Decimal(12, 2)
+  efectivoDeclaradoCierre Decimal?    @db.Decimal(12, 2)
+  efectivoTeoricoCierre   Decimal?    @db.Decimal(12, 2)
+  descuadre               Decimal?    @db.Decimal(12, 2)
+  estado                  EstadoTurno @default(ABIERTO)
+  observaciones           String?
+
+  @@map("turnos")
+}
+
+model MovimientoInventario {
+  id                  String                      @id @default(uuid())
+  empresaId           String
+  empresa             Empresa                     @relation(fields: [empresaId], references: [id])
+  productoId          String
+  producto            Producto                    @relation(fields: [productoId], references: [id])
+  bodegaOrigenId      String?
+  bodegaOrigen        Sede?                       @relation("MovOrigen", fields: [bodegaOrigenId], references: [id])
+  bodegaDestinoId     String?
+  bodegaDestino       Sede?                       @relation("MovDestino", fields: [bodegaDestinoId], references: [id])
+  cantidad            Decimal                     @db.Decimal(12, 3)
+  tipoMovimiento      TipoMovimientoInventario
+  motivoMermaId       String?
+
+  motivoMerma         MotivoMerma?                @relation(fields: [motivoMermaId], references: [id])
+  estado              EstadoMovimientoInventario  @default(SOLICITADO)
+  usuarioSolicitaId   String?
+  usuarioSolicita     Usuario?                    @relation("MovSolicita", fields: [usuarioSolicitaId], references: [id])
+  usuarioDespachaId   String?
+  usuarioDespacha     Usuario?                    @relation("MovDespacha", fields: [usuarioDespachaId], references: [id])
+  usuarioConfirmaId   String?
+  usuarioConfirma     Usuario?                    @relation("MovConfirma", fields: [usuarioConfirmaId], references: [id])
+  fechaSolicitud      DateTime?
+  fechaDespacho       DateTime?
+  fechaConfirmacion   DateTime?
+  observaciones       String?
+  createdAt           DateTime                    @default(now())
+
+  @@map("movimientos_inventario")
 }
