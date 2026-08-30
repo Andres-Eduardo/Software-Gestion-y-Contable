@@ -213,6 +213,9 @@ importers:
 
   apps/api:
     dependencies:
+      db:
+        specifier: workspace:*
+        version: link:../../packages/db
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -238,6 +241,9 @@ importers:
       '@prisma/client':
         specifier: ^7.10.0
         version: 7.10.0(prisma@7.10.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2))(typescript@7.0.2)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       pg:
         specifier: ^8.23.0
         version: 8.23.0
