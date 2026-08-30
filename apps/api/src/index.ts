@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import helmet from "@fastify/helmet";
+import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
@@ -11,6 +14,17 @@ import bcrypt from "bcryptjs";
 import { prisma } from "db";
 
 const app = Fastify({ logger: true });
+
+await app.register(helmet);
+
+await app.register(cors, {
+  origin: process.env.CORS_ORIGIN?.split(",") ?? true,
+});
+
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: "1 minute",
+});
 
 app.register(jwt, {
   secret: process.env.JWT_SECRET as string,
@@ -45,6 +59,14 @@ app.get("/empresas", async () => {
 // Login con email + contraseña (roles administrativos)
 app.post<{ Body: { email: string; password: string } }>(
   "/auth/login",
+  {
+    config: {
+      rateLimit: {
+        max: 5,
+        timeWindow: "1 minute",
+      },
+    },
+  },
   async (request, reply) => {
     const { email, password } = request.body;
 
@@ -67,6 +89,7 @@ app.post<{ Body: { email: string; password: string } }>(
         sedeId: usuario.sedeId,
         empresaId: usuario.empresaId,
       },
+
       { expiresIn: "8h" },
     );
 

@@ -12,7 +12,10 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
     "@fastify/jwt": "^10.2.2",
+    "@fastify/rate-limit": "^11.2.0",
     "bcryptjs": "^3.0.3",
     "db": "workspace:*",
     "dotenv": "^17.4.2",

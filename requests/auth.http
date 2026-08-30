@@ -1,0 +1,18 @@
+@baseUrl = http://127.0.0.1:3000
+
+### Login Admin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@opa.test",
+  "password": "admin123"
+}
+
+### Ver mi info (requiere token)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgxMjkxNjEsImV4cCI6MTc4ODE1Nzk2MX0.oNtYDuDj8RmSdiforxCCYTJKfhMe2Eso0SJJCkYUmKg
+
+### Reportes gerenciales (requiere token + rol ADMIN o GERENTE)
+GET {{baseUrl}}/admin/reportes
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgxMjkxNjEsImV4cCI6MTc4ODE1Nzk2MX0.oNtYDuDj8RmSdiforxCCYTJKfhMe2Eso0SJJCkYUmKg
