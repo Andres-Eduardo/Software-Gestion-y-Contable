@@ -1,0 +1,52 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgxMjkxNjEsImV4cCI6MTc4ODE1Nzk2MX0.oNtYDuDj8RmSdiforxCCYTJKfhMe2Eso0SJJCkYUmKg
+
+### Ver unidades de medida
+GET {{baseUrl}}/unidades-medida
+Authorization: Bearer {{token}}
+
+### Crear una Sede (Cafetería Valledupar)
+POST {{baseUrl}}/sedes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Cafetería Valledupar",
+  "tipo": "CAFETERIA",
+  "ciudad": "Valledupar"
+}
+
+### Ver todas las sedes
+GET {{baseUrl}}/sedes
+Authorization: Bearer {{token}}
+
+### Crear un Tercero (cliente persona natural, sin NIT)
+POST {{baseUrl}}/terceros
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tipoPersona": "NATURAL",
+  "tipoDocumento": "CC",
+  "numeroDocumento": "1065600123",
+  "nombreCompleto": "Cliente de Prueba"
+
+}
+
+### Crear un Tercero (proveedor jurídico, con NIT - probamos el cálculo de DV)
+POST {{baseUrl}}/terceros
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tipoPersona": "JURIDICA",
+  "tipoDocumento": "NIT",
+  "numeroDocumento": "900123456",
+  "nombreCompleto": "Distribuidora de Insumos S.A.S.",
+  "esCliente": false,
+  "esProveedor": true
+}
+
+### Ver todos los terceros
+GET {{baseUrl}}/terceros
+Authorization: Bearer {{token}}

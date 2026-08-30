@@ -1,75 +1,48 @@
 import dotenv from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import helmet from "@fastify/helmet";
-import cors from "@fastify/cors";
-import rateLimit from "@fastify/rate-limit";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
+import helmet from "@fastify/helmet";
+import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
 import bcrypt from "bcryptjs";
 import { prisma } from "db";
+import { authenticate } from "./middleware/auth.js";
+import sedesRoutes from "./routes/sedes.routes.js";
+import tercerosRoutes from "./routes/terceros.routes.js";
+import productosRoutes from "./routes/productos.routes.js";
 
 const app = Fastify({ logger: true });
 
 await app.register(helmet);
-
 await app.register(cors, {
   origin: process.env.CORS_ORIGIN?.split(",") ?? true,
 });
+await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });
+await app.register(jwt, { secret: process.env.JWT_SECRET as string });
 
-await app.register(rateLimit, {
-  max: 100,
-  timeWindow: "1 minute",
-});
-
-app.register(jwt, {
-  secret: process.env.JWT_SECRET as string,
-});
-
-async function authenticate(request: any, reply: any) {
-  try {
-    await request.jwtVerify();
-  } catch (err) {
-    reply.code(401).send({ error: "Token inválido o expirado" });
-  }
-}
-
-function requireRole(...rolesPermitidos: string[]) {
-  return async function (request: any, reply: any) {
-    const { rol } = request.user;
-    if (!rolesPermitidos.includes(rol)) {
-      reply.code(403).send({ error: "No tienes permiso para esta acción" });
-    }
-  };
-}
+app.register(sedesRoutes);
+app.register(tercerosRoutes);
+app.register(productosRoutes);
 
 app.get("/health", async () => {
   return { status: "ok", service: "opa-api" };
 });
 
 app.get("/empresas", async () => {
-  const empresas = await prisma.empresa.findMany();
-  return empresas;
+  return prisma.empresa.findMany();
 });
 
-// Login con email + contraseña (roles administrativos)
 app.post<{ Body: { email: string; password: string } }>(
   "/auth/login",
-  {
-    config: {
-      rateLimit: {
-        max: 5,
-        timeWindow: "1 minute",
-      },
-    },
-  },
+  { config: { rateLimit: { max: 5, timeWindow: "1 minute" } } },
   async (request, reply) => {
     const { email, password } = request.body;
-
     const usuario = await prisma.usuario.findUnique({ where: { email } });
 
     if (!usuario || !usuario.passwordHash) {
@@ -77,7 +50,6 @@ app.post<{ Body: { email: string; password: string } }>(
     }
 
     const passwordValida = await bcrypt.compare(password, usuario.passwordHash);
-
     if (!passwordValida) {
       return reply.code(401).send({ error: "Credenciales inválidas" });
     }
@@ -89,7 +61,6 @@ app.post<{ Body: { email: string; password: string } }>(
         sedeId: usuario.sedeId,
         empresaId: usuario.empresaId,
       },
-
       { expiresIn: "8h" },
     );
 
@@ -97,18 +68,9 @@ app.post<{ Body: { email: string; password: string } }>(
   },
 );
 
-// Ruta protegida: cualquier usuario logueado puede verla
 app.get("/auth/me", { preHandler: [authenticate] }, async (request: any) => {
   return request.user;
 });
-
-app.get(
-  "/admin/reportes",
-  { preHandler: [authenticate, requireRole("ADMIN", "GERENTE")] },
-  async () => {
-    return { mensaje: "Acceso concedido a reportes gerenciales" };
-  },
-);
 
 const start = async () => {
   try {

@@ -48,6 +48,17 @@ async function main() {
     },
   });
 
+  await prisma.unidadMedida.createMany({
+    data: [
+      { nombre: "Gramo", simbolo: "gr", tipo: "PESO" },
+      { nombre: "Kilogramo", simbolo: "kg", tipo: "PESO" },
+      { nombre: "Mililitro", simbolo: "ml", tipo: "VOLUMEN" },
+      { nombre: "Litro", simbolo: "l", tipo: "VOLUMEN" },
+      { nombre: "Unidad", simbolo: "un", tipo: "UNIDAD" },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log("Seed completado:");
   console.log({ empresa: empresa.razonSocial, admin: admin.email });
 }
