@@ -45,6 +45,13 @@ model Empresa {
   terceros Tercero[]
   productos Producto[]
   movimientosInventario MovimientoInventario[]
+  facturas Factura[]
+  cajaMenor CajaMenor[]  
+  lotesProduccion LoteProduccion[]
+  maquinas Maquina[]
+  empleados Empleado[]
+  nominas   Nomina[]
+  cuentasPorPagar CuentaPorPagar[]
 
   @@map("empresas")
 }
@@ -65,7 +72,10 @@ model Sede {
   turnos Turno[]
   movimientosOrigen MovimientoInventario[] @relation("MovOrigen")
   movimientosDestino MovimientoInventario[] @relation("MovDestino")
-
+  facturas Factura[]
+  cajaMenor CajaMenor[]
+  lotesProduccion LoteProduccion[]
+  maquinas Maquina[]
   @@map("sedes")
 }
 
@@ -91,6 +101,14 @@ model Usuario {
   movimientosSolicita MovimientoInventario[] @relation("MovSolicita")
   movimientosDespacha MovimientoInventario[] @relation("MovDespacha")
   movimientosConfirma MovimientoInventario[] @relation("MovConfirma")
+  facturas Factura[]
+  cajaMenor CajaMenor[]
+  lotesProduccion LoteProduccion[]
+  auditoriasVending AuditoriaVending[]
+  empleado                Empleado?
+  movimientosCuentaCorriente CuentaCorrienteEmpleado[]
+  pagosCxCRegistrados PagoCuentaPorCobrar[] @relation("PagoCxCRegistra")
+  pagosCxPRegistrados PagoCuentaPorPagar[]  @relation("PagoCxPRegistra")
 
   @@map("usuarios")
 }
@@ -126,6 +144,7 @@ model UnidadMedida {
   tipo    TipoUnidad
 
   productos Producto[]
+  recetaDetalles RecetaDetalle[]
 
   @@map("unidades_medida")
 }
@@ -150,6 +169,10 @@ model Tercero {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  facturas Factura[]
+  cuentasPorCobrar CuentaPorCobrar[]
+  cuentasPorPagar  CuentaPorPagar[]
+
   @@unique([empresaId, numeroDocumento])
   @@map("terceros")
 }
@@ -171,6 +194,11 @@ model Producto {
   updatedAt      DateTime     @updatedAt
 
   movimientos MovimientoInventario[]
+  detallesFactura DetalleFactura[]
+  recetaComoProducto Receta[] @relation("RecetaProducto")
+  recetaComoInsumo RecetaDetalle[] @relation("RecetaInsumo")
+  loteInsumo LoteProduccionInsumo[] @relation("LoteInsumo")
+  canisters Canister[]
 
   @@unique([empresaId, codigo])
   @@map("productos")
@@ -225,6 +253,10 @@ model Turno {
   estado                  EstadoTurno @default(ABIERTO)
   observaciones           String?
 
+  facturas Factura[]
+  cajaMenor CajaMenor[]
+
+  @@index([estado])
   @@map("turnos")
 }
 
@@ -257,4 +289,462 @@ model MovimientoInventario {
   createdAt           DateTime                    @default(now())
 
   @@map("movimientos_inventario")
+}
+
+enum TipoDocumentoDian {
+  FACTURA_VENTA
+  NOTA_CREDITO
+  NOTA_DEBITO
+}
+
+enum EstadoDian {
+  PENDIENTE
+  EN_PROCESO
+  ACEPTADO
+  RECHAZADO
+  CONTINGENCIA
+}
+
+enum MedioPago {
+  EFECTIVO
+  NEQUI
+  DATAFONO
+  CREDITO
+}
+
+model MotivoNotaAjuste {
+  id            String            @id @default(uuid())
+  nombre        String
+  tipoDocumento TipoDocumentoDian
+
+  facturas Factura[]
+
+  @@map("motivos_nota_ajuste")
+}
+
+model Factura {
+
+  id                     String            @id @default(uuid())
+  empresaId              String
+  empresa                Empresa           @relation(fields: [empresaId], references: [id])
+  sedeId                 String
+  sede                   Sede              @relation(fields: [sedeId], references: [id])
+  turnoId                String?
+  turno                  Turno?            @relation(fields: [turnoId], references: [id])
+  usuarioId              String
+  usuario                Usuario           @relation(fields: [usuarioId], references: [id])
+  terceroId              String?
+  tercero                Tercero?          @relation(fields: [terceroId], references: [id])
+  tipoDocumento          TipoDocumentoDian
+  documentoReferenciaId  String?
+  documentoReferencia    Factura?          @relation("NotaReferencia", fields: [documentoReferenciaId], references: [id])
+  notasQueLaReferencian  Factura[]         @relation("NotaReferencia")
+  motivoNotaId           String?
+  motivoNota             MotivoNotaAjuste? @relation(fields: [motivoNotaId], references: [id])
+  prefijo                String
+  numero                 Int
+  fechaEmision           DateTime          @default(now())
+  subtotal               Decimal           @db.Decimal(12, 2)
+  totalDescuento         Decimal           @default(0) @db.Decimal(12, 2)
+  totalIva               Decimal           @db.Decimal(12, 2)
+  totalInc               Decimal           @db.Decimal(12, 2)
+  total                  Decimal           @db.Decimal(12, 2)
+  estadoDian             EstadoDian        @default(PENDIENTE)
+  cufe                   String?           @unique
+  xmlPath                String?
+  pdfPath                String?
+  observaciones          String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+
+  detalles      DetalleFactura[]
+  pagos         PagoFactura[]
+  cuentaPorCobrar CuentaPorCobrar?
+
+  @@index([estadoDian])
+  @@unique([empresaId, prefijo, numero])
+  @@map("facturas")
+}
+
+model DetalleFactura {
+  id              String   @id @default(uuid())
+  facturaId       String
+  factura         Factura  @relation(fields: [facturaId], references: [id])
+  productoId      String
+  producto        Producto @relation(fields: [productoId], references: [id])
+  cantidad        Decimal  @db.Decimal(12, 3)
+  precioUnitario  Decimal  @db.Decimal(12, 2)
+  porcentajeIva   Decimal  @default(0) @db.Decimal(5, 2)
+  valorIva        Decimal  @default(0) @db.Decimal(12, 2)
+  porcentajeInc   Decimal  @default(0) @db.Decimal(5, 2)
+  valorInc        Decimal  @default(0) @db.Decimal(12, 2)
+  descuento       Decimal  @default(0) @db.Decimal(12, 2)
+  total           Decimal  @db.Decimal(12, 2)
+
+  @@map("detalle_facturas")
+}
+
+model PagoFactura {
+  id         String    @id @default(uuid())
+  facturaId  String
+  factura    Factura   @relation(fields: [facturaId], references: [id])
+  medioPago  MedioPago
+  monto      Decimal   @db.Decimal(12, 2)
+
+  referencia String?
+  createdAt  DateTime  @default(now())
+
+  @@map("pagos_factura")
+}
+
+model CajaMenor {
+  id         String   @id @default(uuid())
+  empresaId  String
+  empresa    Empresa  @relation(fields: [empresaId], references: [id])
+  sedeId     String
+  sede       Sede     @relation(fields: [sedeId], references: [id])
+  turnoId    String?
+  turno      Turno?   @relation(fields: [turnoId], references: [id])
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  fecha      DateTime @default(now())
+  concepto   String
+  monto      Decimal  @db.Decimal(12, 2)
+  soporteUrl String?
+  createdAt  DateTime @default(now())
+
+  @@map("caja_menor")
+}
+
+enum EstadoLoteProduccion {
+  EN_PROCESO
+  FINALIZADO
+}
+
+model Receta {
+  id           String   @id @default(uuid())
+  productoId   String
+  producto     Producto @relation("RecetaProducto", fields: [productoId], references: [id])
+  nombre       String
+  rendimiento  Decimal  @db.Decimal(12, 3)
+  activa       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  detalles          RecetaDetalle[]
+  lotesProduccion    LoteProduccion[]
+
+  @@map("recetas")
+}
+
+model RecetaDetalle {
+  id             String       @id @default(uuid())
+  recetaId       String
+  receta         Receta       @relation(fields: [recetaId], references: [id])
+  insumoId       String
+  insumo         Producto     @relation("RecetaInsumo", fields: [insumoId], references: [id])
+  cantidad       Decimal      @db.Decimal(12, 3)
+  unidadMedidaId String
+  unidadMedida   UnidadMedida @relation(fields: [unidadMedidaId], references: [id])
+
+  @@map("receta_detalles")
+}
+
+model LoteProduccion {
+  id                    String               @id @default(uuid())
+  empresaId             String
+  empresa               Empresa              @relation(fields: [empresaId], references: [id])
+  recetaId              String
+  receta                Receta               @relation(fields: [recetaId], references: [id])
+  sedeId                String
+  sede                  Sede                 @relation(fields: [sedeId], references: [id])
+  usuarioId             String
+  usuario               Usuario              @relation(fields: [usuarioId], references: [id])
+  cantidadProducidaReal Decimal?             @db.Decimal(12, 3)
+  fechaProduccion       DateTime             @default(now())
+  estado                EstadoLoteProduccion @default(EN_PROCESO)
+  observaciones         String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  insumos LoteProduccionInsumo[]
+
+  @@map("lotes_produccion")
+}
+
+model LoteProduccionInsumo {
+  id                String         @id @default(uuid())
+  loteProduccionId  String
+  loteProduccion    LoteProduccion @relation(fields: [loteProduccionId], references: [id])
+  insumoId          String
+  insumo            Producto       @relation("LoteInsumo", fields: [insumoId], references: [id])
+  cantidadTeorica   Decimal        @db.Decimal(12, 3)
+  cantidadReal      Decimal?       @db.Decimal(12, 3)
+  variacion         Decimal?       @db.Decimal(12, 3)
+
+  @@map("lote_produccion_insumos")
+}
+
+enum EstadoAuditoriaVending {
+  EN_PROCESO
+  FINALIZADA
+}
+
+model Maquina {
+  id        String   @id @default(uuid())
+  empresaId String
+  empresa   Empresa  @relation(fields: [empresaId], references: [id])
+  sedeId    String
+  sede      Sede     @relation(fields: [sedeId], references: [id])
+  codigo    String   @unique
+  nombre    String?
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  canisters   Canister[]
+  auditorias  AuditoriaVending[]
+
+  @@map("maquinas")
+}
+
+model Canister {
+  id               String    @id @default(uuid())
+  maquinaId        String
+  maquina          Maquina   @relation(fields: [maquinaId], references: [id])
+  numero           Int
+  productoId       String?
+  producto         Producto? @relation(fields: [productoId], references: [id])
+  capacidadMaxima  Int?
+
+
+  auditorias AuditoriaVendingCanister[]
+
+  @@unique([maquinaId, numero])
+  @@map("canisters")
+}
+
+model AuditoriaVending {
+  id         String                 @id @default(uuid())
+  maquinaId  String
+  maquina    Maquina                @relation(fields: [maquinaId], references: [id])
+  usuarioId  String
+  usuario    Usuario                @relation(fields: [usuarioId], references: [id])
+  fecha      DateTime               @default(now())
+  estado     EstadoAuditoriaVending @default(EN_PROCESO)
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  canisters AuditoriaVendingCanister[]
+  arqueo    ArqueoMonedero?
+
+  @@map("auditorias_vending")
+}
+
+model AuditoriaVendingCanister {
+  id                 String           @id @default(uuid())
+  auditoriaId        String
+  auditoria          AuditoriaVending @relation(fields: [auditoriaId], references: [id])
+  canisterId         String
+  canister           Canister         @relation(fields: [canisterId], references: [id])
+  contadorInicial    Int
+  contadorFinal      Int?
+  existenciaFisica   Int
+
+  cantidadSurtida    Int              @default(0)
+
+  @@map("auditoria_vending_canisters")
+}
+
+model ArqueoMonedero {
+  id              String            @id @default(uuid())
+  auditoriaId     String            @unique
+  auditoria       AuditoriaVending  @relation(fields: [auditoriaId], references: [id])
+  ventaTeorica    Decimal           @db.Decimal(12, 2)
+  ventaRecaudada  Decimal           @db.Decimal(12, 2)
+  descuadre       Decimal           @db.Decimal(12, 2)
+  createdAt       DateTime          @default(now())
+
+  detalles ArqueoMonedaDetalle[]
+
+  @@map("arqueos_monedero")
+}
+
+model ArqueoMonedaDetalle {
+  id            String         @id @default(uuid())
+  arqueoId      String
+  arqueo        ArqueoMonedero @relation(fields: [arqueoId], references: [id])
+  denominacion  Int
+  cantidad      Int
+  pesoGramos    Decimal?       @db.Decimal(10, 2)
+  subtotal      Decimal        @db.Decimal(12, 2)
+
+  @@map("arqueo_moneda_detalles")
+}
+
+enum TipoContrato {
+  TERMINO_FIJO
+  TERMINO_INDEFINIDO
+  PRESTACION_SERVICIOS
+  APRENDIZ
+}
+
+enum TipoMovimientoCuentaCorriente {
+  ANTICIPO
+  PRESTAMO
+  CONSUMO_INTERNO
+  ABONO
+}
+
+enum EstadoNomina {
+  BORRADOR
+  APROBADA
+  PAGADA
+}
+
+model Empleado {
+  id             String        @id @default(uuid())
+  empresaId      String
+  empresa        Empresa       @relation(fields: [empresaId], references: [id])
+  usuarioId      String?       @unique
+  usuario        Usuario?      @relation(fields: [usuarioId], references: [id])
+  nombreCompleto String
+  documento      String        @unique
+  fechaIngreso   DateTime
+  fechaRetiro    DateTime?
+  salarioBase    Decimal       @db.Decimal(12, 2)
+  tipoContrato   TipoContrato
+
+  activo         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  cuentaCorriente CuentaCorrienteEmpleado[]
+  nominaDetalles  NominaDetalle[]
+
+  @@map("empleados")
+}
+
+model CuentaCorrienteEmpleado {
+  id                 String                        @id @default(uuid())
+  empleadoId         String
+  empleado           Empleado                      @relation(fields: [empleadoId], references: [id])
+  tipo               TipoMovimientoCuentaCorriente
+  monto              Decimal                       @db.Decimal(12, 2)
+  fecha              DateTime                      @default(now())
+  descripcion        String?
+  usuarioRegistraId  String
+  usuarioRegistra    Usuario                       @relation(fields: [usuarioRegistraId], references: [id])
+  createdAt          DateTime                      @default(now())
+
+  @@map("cuenta_corriente_empleados")
+}
+
+model Nomina {
+  id             String       @id @default(uuid())
+  empresaId      String
+  empresa        Empresa      @relation(fields: [empresaId], references: [id])
+  periodoInicio  DateTime
+  periodoFin     DateTime
+  estado         EstadoNomina @default(BORRADOR)
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  detalles NominaDetalle[]
+
+  @@map("nominas")
+}
+
+model NominaDetalle {
+  id                              String   @id @default(uuid())
+  nominaId                        String
+  nomina                          Nomina   @relation(fields: [nominaId], references: [id])
+  empleadoId                      String
+  empleado                        Empleado @relation(fields: [empleadoId], references: [id])
+  salarioBase                     Decimal  @db.Decimal(12, 2)
+  totalDevengado                  Decimal  @db.Decimal(12, 2)
+  totalDeducciones                Decimal  @db.Decimal(12, 2)
+  saldoCuentaCorrienteDescontado   Decimal  @default(0) @db.Decimal(12, 2)
+  totalNeto                       Decimal  @db.Decimal(12, 2)
+
+  @@map("nomina_detalles")
+}
+
+enum EstadoCuentaFinanciera {
+  PENDIENTE
+  PARCIAL
+  PAGADA
+  VENCIDA
+}
+
+model CuentaPorCobrar {
+  id                String                 @id @default(uuid())
+  facturaId         String                 @unique
+  factura           Factura                @relation(fields: [facturaId], references: [id])
+  terceroId         String
+  tercero           Tercero                @relation(fields: [terceroId], references: [id])
+  montoOriginal     Decimal                @db.Decimal(12, 2)
+  saldoPendiente    Decimal                @db.Decimal(12, 2)
+  fechaVencimiento  DateTime?
+  estado            EstadoCuentaFinanciera @default(PENDIENTE)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  pagos PagoCuentaPorCobrar[]
+
+  @@index([estado])
+  @@map("cuentas_por_cobrar")
+}
+
+model PagoCuentaPorCobrar {
+  id                 String          @id @default(uuid())
+  cuentaPorCobrarId  String
+  cuentaPorCobrar    CuentaPorCobrar @relation(fields: [cuentaPorCobrarId], references: [id])
+  monto              Decimal         @db.Decimal(12, 2)
+  fecha              DateTime        @default(now())
+
+  medioPago          MedioPago
+  usuarioRegistraId  String
+  usuarioRegistra    Usuario         @relation("PagoCxCRegistra", fields: [usuarioRegistraId], references: [id])
+  createdAt          DateTime        @default(now())
+
+  @@map("pagos_cuenta_por_cobrar")
+}
+
+model CuentaPorPagar {
+  id                String                 @id @default(uuid())
+  empresaId         String
+  empresa           Empresa                @relation(fields: [empresaId], references: [id])
+  terceroId         String
+  tercero           Tercero                @relation(fields: [terceroId], references: [id])
+  concepto          String
+  montoOriginal     Decimal                @db.Decimal(12, 2)
+  saldoPendiente    Decimal                @db.Decimal(12, 2)
+  fechaEmision      DateTime               @default(now())
+  fechaVencimiento  DateTime?
+  estado            EstadoCuentaFinanciera @default(PENDIENTE)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  pagos PagoCuentaPorPagar[]
+
+  @@index([estado])
+  @@map("cuentas_por_pagar")
+}
+
+model PagoCuentaPorPagar {
+  id                 String         @id @default(uuid())
+  cuentaPorPagarId   String
+
+  cuentaPorPagar     CuentaPorPagar @relation(fields: [cuentaPorPagarId], references: [id])
+  monto              Decimal        @db.Decimal(12, 2)
+  fecha              DateTime       @default(now())
+  medioPago          MedioPago
+  usuarioRegistraId  String
+  usuarioRegistra    Usuario        @relation("PagoCxPRegistra", fields: [usuarioRegistraId], references: [id])
+  createdAt          DateTime       @default(now())
+
+  @@map("pagos_cuenta_por_pagar")
 }
