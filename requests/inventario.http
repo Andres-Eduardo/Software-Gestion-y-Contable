@@ -1,0 +1,51 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzMDU1ODUsImV4cCI6MTc4ODMzNDM4NX0.d06a_xgCOGzjvn5-NYrh8TTtRMEY6TGPWE5b74o-CTU
+
+### Ver stock actual de Donas en Cafetería Valledupar (debería ser 0)
+GET {{baseUrl}}/inventario/stock?sedeId=798356e1-2df3-4e88-876a-bda1daa474f0&productoId=f28237e6-70dc-4915-80e1-63dfe71c8f49
+Authorization: Bearer {{token}}
+
+### Registrar entrada de 20 Donas (ej. producción o compra)
+POST {{baseUrl}}/movimientos-inventario/entrada
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49",
+  "bodegaDestinoId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "cantidad": 20,
+  "observaciones": "Carga inicial de inventario de prueba"
+}
+
+### Ver stock otra vez (debería ser 20)
+GET {{baseUrl}}/inventario/stock?sedeId=798356e1-2df3-4e88-876a-bda1daa474f0&productoId=f28237e6-70dc-4915-80e1-63dfe71c8f49
+Authorization: Bearer {{token}}
+
+### Abrir turno de nuevo
+POST {{baseUrl}}/turnos/apertura
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "efectivoInicial": 50000,
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0"
+}
+
+### Crear una Factura (3 Donas de Chocolate)
+POST {{baseUrl}}/facturas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 3 }
+  ],
+  "pagos": [
+    { "medioPago": "EFECTIVO", "monto": 14580 }
+  ]
+}
+
+### Ver stock después de la venta (debería ser 17: 20 - 3)
+GET {{baseUrl}}/inventario/stock?sedeId=798356e1-2df3-4e88-876a-bda1daa474f0&productoId=f28237e6-70dc-4915-80e1-63dfe71c8f49
+Authorization: Bearer {{token}}

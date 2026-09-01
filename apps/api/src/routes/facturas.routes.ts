@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "db";
 import { authenticate } from "../middleware/auth.js";
+import { calcularStock } from "../utils/inventario.util.js";
 
 const IVA_PORCENTAJE = 19;
 const INC_PORCENTAJE = 8;
@@ -72,6 +73,7 @@ export default async function facturasRoutes(app: FastifyInstance) {
       });
     }
 
+    const turnoId = turno.id;
     const productoIds = detalles.map((d) => d.productoId);
     const productos = await prisma.producto.findMany({
       where: { id: { in: productoIds }, empresaId },
@@ -90,6 +92,19 @@ export default async function facturasRoutes(app: FastifyInstance) {
       let totalDescuento = 0;
       let totalIva = 0;
       let totalInc = 0;
+
+      // Validar stock disponible antes de vender
+      for (const d of detalles) {
+        const producto = productosMap.get(d.productoId)!;
+        if (producto.tipo !== "INSUMO") {
+          const stockDisponible = await calcularStock(sedeId, d.productoId);
+          if (stockDisponible < d.cantidad) {
+            throw new Error(
+              `Stock insuficiente de "${producto.nombre}": disponible ${stockDisponible}, solicitado ${d.cantidad}`,
+            );
+          }
+        }
+      }
 
       const detallesData = detalles.map((d) => {
         const producto = productosMap.get(d.productoId)!;
@@ -150,11 +165,11 @@ export default async function facturasRoutes(app: FastifyInstance) {
         });
         const numero = (ultimaFactura?.numero ?? 0) + 1;
 
-        return tx.factura.create({
+        const nuevaFactura = await tx.factura.create({
           data: {
             empresaId,
             sedeId,
-            turnoId: turno.id,
+            turnoId,
             usuarioId,
             terceroId,
             tipoDocumento: "FACTURA_VENTA",
@@ -172,6 +187,25 @@ export default async function facturasRoutes(app: FastifyInstance) {
           },
           include: { detalles: true, pagos: true },
         });
+
+        // Descontar inventario automáticamente
+        for (const d of detallesData) {
+          await tx.movimientoInventario.create({
+            data: {
+              empresaId,
+              productoId: d.productoId,
+              bodegaOrigenId: sedeId,
+              cantidad: d.cantidad,
+              tipoMovimiento: "VENTA_SALIDA",
+              estado: "CONFIRMADO",
+              usuarioConfirmaId: usuarioId,
+              fechaConfirmacion: new Date(),
+              observaciones: `Venta - Factura ${prefijo}-${numero}`,
+            },
+          });
+        }
+
+        return nuevaFactura;
       });
 
       return factura;
