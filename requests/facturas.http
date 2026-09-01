@@ -1,0 +1,47 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgyMjMyODYsImV4cCI6MTc4ODI1MjA4Nn0.jLLzR3E9uqmGSS2HtazPp1O94pCZiMfb2bHe6TRl1c0
+
+### Abrir turno de nuevo (el anterior ya está cerrado)
+POST {{baseUrl}}/turnos/apertura
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "efectivoInicial": 50000,
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0"
+}
+
+### Crear una Factura (2 Donas de Chocolate, pago en efectivo)
+POST {{baseUrl}}/facturas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "terceroId": "b64e381c-7f62-4af3-a3ec-c5cf6bc0842c",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 2 }
+  ],
+  "pagos": [
+    { "medioPago": "EFECTIVO", "monto": 9720 }
+  ]
+}
+
+### Intentar crear una Factura con pagos que NO cuadran (debe fallar con 400)
+POST {{baseUrl}}/facturas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 1 }
+  ],
+  "pagos": [
+    { "medioPago": "EFECTIVO", "monto": 1000 }
+  ]
+}
+
+### Ver todas las facturas
+GET {{baseUrl}}/facturas
+Authorization: Bearer {{token}}
