@@ -66,12 +66,10 @@ export default async function facturasRoutes(app: FastifyInstance) {
     });
 
     if (!turno) {
-      return reply
-        .code(400)
-        .send({
-          error:
-            "No hay un turno abierto en esta sede. Abre turno antes de vender.",
-        });
+      return reply.code(400).send({
+        error:
+          "No hay un turno abierto en esta sede. Abre turno antes de vender.",
+      });
     }
 
     const productoIds = detalles.map((d) => d.productoId);
@@ -80,11 +78,9 @@ export default async function facturasRoutes(app: FastifyInstance) {
     });
 
     if (productos.length !== new Set(productoIds).size) {
-      return reply
-        .code(400)
-        .send({
-          error: "Uno o más productos no existen o no pertenecen a la empresa",
-        });
+      return reply.code(400).send({
+        error: "Uno o más productos no existen o no pertenecen a la empresa",
+      });
     }
 
     const productosMap = new Map(productos.map((p) => [p.id, p]));
@@ -206,6 +202,254 @@ export default async function facturasRoutes(app: FastifyInstance) {
       if (!factura)
         return reply.code(404).send({ error: "Factura no encontrada" });
       return factura;
+    },
+  );
+
+  // Nota Crédito — referencia líneas de la factura original, respeta precio/tarifas históricas
+  app.post<{
+    Params: { id: string };
+    Body: {
+      motivoNotaId: string;
+      detalles: { productoId: string; cantidad: number }[];
+      observaciones?: string;
+      prefijo?: string;
+    };
+  }>(
+    "/facturas/:id/nota-credito",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { sub: usuarioId, empresaId } = (request as any).user;
+      const { id } = request.params;
+      const {
+        motivoNotaId,
+        detalles,
+        observaciones,
+        prefijo = "NC",
+      } = request.body;
+
+      const facturaOriginal = await prisma.factura.findFirst({
+        where: { id, empresaId, tipoDocumento: "FACTURA_VENTA" },
+        include: { detalles: true },
+      });
+
+      if (!facturaOriginal) {
+        return reply
+          .code(404)
+          .send({ error: "Factura original no encontrada" });
+      }
+      if (!detalles || detalles.length === 0) {
+        return reply.code(400).send({
+          error: "La nota crédito debe incluir al menos un producto",
+        });
+      }
+
+      try {
+        let subtotal = 0;
+        let totalIva = 0;
+        let totalInc = 0;
+
+        const detallesData = detalles.map((d) => {
+          const lineaOriginal = facturaOriginal.detalles.find(
+            (det) => det.productoId === d.productoId,
+          );
+          if (!lineaOriginal) {
+            throw new Error(
+              `El producto ${d.productoId} no está en la factura original`,
+            );
+          }
+          if (d.cantidad > Number(lineaOriginal.cantidad)) {
+            throw new Error(
+              `No puedes acreditar ${d.cantidad} unidades, solo se vendieron ${lineaOriginal.cantidad}`,
+            );
+          }
+
+          const precioUnitario = Number(lineaOriginal.precioUnitario);
+          const porcentajeIva = Number(lineaOriginal.porcentajeIva);
+          const porcentajeInc = Number(lineaOriginal.porcentajeInc);
+          const baseGravable = precioUnitario * d.cantidad;
+          const valorIva = (baseGravable * porcentajeIva) / 100;
+          const valorInc = (baseGravable * porcentajeInc) / 100;
+
+          subtotal += baseGravable;
+          totalIva += valorIva;
+          totalInc += valorInc;
+
+          return {
+            productoId: d.productoId,
+            cantidad: d.cantidad,
+            precioUnitario,
+            porcentajeIva,
+            valorIva,
+            porcentajeInc,
+            valorInc,
+            descuento: 0,
+            total: baseGravable + valorIva + valorInc,
+          };
+        });
+
+        const total = subtotal + totalIva + totalInc;
+
+        const nota = await prisma.$transaction(async (tx) => {
+          const ultima = await tx.factura.findFirst({
+            where: { empresaId, prefijo },
+            orderBy: { numero: "desc" },
+          });
+          const numero = (ultima?.numero ?? 0) + 1;
+
+          return tx.factura.create({
+            data: {
+              empresaId,
+              sedeId: facturaOriginal.sedeId,
+              turnoId: facturaOriginal.turnoId,
+              usuarioId,
+              terceroId: facturaOriginal.terceroId,
+              tipoDocumento: "NOTA_CREDITO",
+              documentoReferenciaId: facturaOriginal.id,
+              motivoNotaId,
+              prefijo,
+              numero,
+              fechaEmision: new Date(),
+              subtotal,
+              totalDescuento: 0,
+              totalIva,
+              totalInc,
+              total,
+              estadoDian: "PENDIENTE",
+              observaciones,
+              detalles: { create: detallesData },
+            },
+            include: { detalles: true },
+          });
+        });
+
+        return nota;
+      } catch (err: any) {
+        return reply.code(400).send({ error: err.message });
+      }
+    },
+  );
+
+  // Nota Débito — cargo adicional, usa precio ACTUAL del producto, no está limitada a la factura original
+  app.post<{
+    Params: { id: string };
+    Body: {
+      motivoNotaId: string;
+      detalles: { productoId: string; cantidad: number }[];
+      observaciones?: string;
+      prefijo?: string;
+    };
+  }>(
+    "/facturas/:id/nota-debito",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { sub: usuarioId, empresaId } = (request as any).user;
+      const { id } = request.params;
+      const {
+        motivoNotaId,
+        detalles,
+        observaciones,
+        prefijo = "ND",
+      } = request.body;
+
+      const facturaOriginal = await prisma.factura.findFirst({
+        where: { id, empresaId, tipoDocumento: "FACTURA_VENTA" },
+      });
+
+      if (!facturaOriginal) {
+        return reply
+          .code(404)
+          .send({ error: "Factura original no encontrada" });
+      }
+
+      if (!detalles || detalles.length === 0) {
+        return reply.code(400).send({
+          error: "La nota débito debe incluir al menos un concepto",
+        });
+      }
+
+      const productoIds = detalles.map((d) => d.productoId);
+      const productos = await prisma.producto.findMany({
+        where: { id: { in: productoIds }, empresaId },
+      });
+      const productosMap = new Map(productos.map((p) => [p.id, p]));
+
+      try {
+        let subtotal = 0;
+        let totalIva = 0;
+        let totalInc = 0;
+
+        const detallesData = detalles.map((d) => {
+          const producto = productosMap.get(d.productoId);
+          if (!producto)
+            throw new Error(`Producto ${d.productoId} no encontrado`);
+          if (producto.precioVenta === null)
+            throw new Error(
+              `El producto "${producto.nombre}" no tiene precio de venta`,
+            );
+
+          const precioUnitario = Number(producto.precioVenta);
+          const porcentajeInc = producto.aplicaInc ? INC_PORCENTAJE : 0;
+          const porcentajeIva = producto.aplicaInc ? 0 : IVA_PORCENTAJE;
+          const baseGravable = precioUnitario * d.cantidad;
+          const valorIva = (baseGravable * porcentajeIva) / 100;
+          const valorInc = (baseGravable * porcentajeInc) / 100;
+
+          subtotal += baseGravable;
+          totalIva += valorIva;
+          totalInc += valorInc;
+
+          return {
+            productoId: producto.id,
+            cantidad: d.cantidad,
+            precioUnitario,
+            porcentajeIva,
+            valorIva,
+            porcentajeInc,
+            valorInc,
+            descuento: 0,
+            total: baseGravable + valorIva + valorInc,
+          };
+        });
+
+        const total = subtotal + totalIva + totalInc;
+
+        const nota = await prisma.$transaction(async (tx) => {
+          const ultima = await tx.factura.findFirst({
+            where: { empresaId, prefijo },
+            orderBy: { numero: "desc" },
+          });
+          const numero = (ultima?.numero ?? 0) + 1;
+
+          return tx.factura.create({
+            data: {
+              empresaId,
+              sedeId: facturaOriginal.sedeId,
+              turnoId: facturaOriginal.turnoId,
+              usuarioId,
+              terceroId: facturaOriginal.terceroId,
+              tipoDocumento: "NOTA_DEBITO",
+              documentoReferenciaId: facturaOriginal.id,
+              motivoNotaId,
+              prefijo,
+              numero,
+              fechaEmision: new Date(),
+              subtotal,
+              totalDescuento: 0,
+              totalIva,
+              totalInc,
+              total,
+              estadoDian: "PENDIENTE",
+              observaciones,
+              detalles: { create: detallesData },
+            },
+            include: { detalles: true },
+          });
+        });
+
+        return nota;
+      } catch (err: any) {
+        return reply.code(400).send({ error: err.message });
+      }
     },
   );
 }

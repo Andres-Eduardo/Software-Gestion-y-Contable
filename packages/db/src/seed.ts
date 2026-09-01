@@ -61,6 +61,25 @@ async function main() {
 
   console.log("Seed completado:");
   console.log({ empresa: empresa.razonSocial, admin: admin.email });
+
+  await prisma.motivoNotaAjuste.upsert({
+    where: { id: "seed-motivo-devolucion" },
+    update: {},
+    create: {
+      id: "seed-motivo-devolucion",
+      nombre: "Devolución de producto",
+      tipoDocumento: "NOTA_CREDITO",
+    },
+  });
+  await prisma.motivoNotaAjuste.upsert({
+    where: { id: "seed-motivo-cobro-adicional" },
+    update: {},
+    create: {
+      id: "seed-motivo-cobro-adicional",
+      nombre: "Cobro adicional no facturado",
+      tipoDocumento: "NOTA_DEBITO",
+    },
+  });
 }
 
 main()

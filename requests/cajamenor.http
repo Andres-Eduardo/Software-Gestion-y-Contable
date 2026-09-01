@@ -1,0 +1,17 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgyMjMyODYsImV4cCI6MTc4ODI1MjA4Nn0.jLLzR3E9uqmGSS2HtazPp1O94pCZiMfb2bHe6TRl1c0
+
+### Registrar gasto de emergencia
+POST {{baseUrl}}/caja-menor
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "concepto": "Compra de hielo de emergencia",
+  "monto": 8000,
+  "soporteUrl": "https://ejemplo.com/recibo.jpg"
+}
+
+### Ver historial de caja menor
+GET {{baseUrl}}/caja-menor
+Authorization: Bearer {{token}}

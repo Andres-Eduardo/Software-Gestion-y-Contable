@@ -45,3 +45,42 @@ Authorization: Bearer {{token}}
 ### Ver todas las facturas
 GET {{baseUrl}}/facturas
 Authorization: Bearer {{token}}
+
+### Nota Crédito (devolver 1 de las 2 donas vendidas)
+POST {{baseUrl}}/facturas/ae30091b-c2b8-4ab9-839a-b2b56e8dd801/nota-credito
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "motivoNotaId": "seed-motivo-devolucion",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 1 }
+  ],
+  "observaciones": "Cliente devolvió 1 dona"
+}
+
+### Nota Crédito intentando acreditar MÁS de lo vendido (debe fallar con 400)
+POST {{baseUrl}}/facturas/ae30091b-c2b8-4ab9-839a-b2b56e8dd801/nota-credito
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "motivoNotaId": "seed-motivo-devolucion",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 5 }
+  ]
+}
+
+### Nota Débito (cargo adicional)
+POST {{baseUrl}}/facturas/ae30091b-c2b8-4ab9-839a-b2b56e8dd801/nota-debito
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "motivoNotaId": "seed-motivo-cobro-adicional",
+
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 1 }
+  ],
+  "observaciones": "Se olvidó cobrar una dona adicional"
+}
