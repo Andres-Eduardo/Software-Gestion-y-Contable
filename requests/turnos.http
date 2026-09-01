@@ -1,0 +1,45 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgyMjMyODYsImV4cCI6MTc4ODI1MjA4Nn0.jLLzR3E9uqmGSS2HtazPp1O94pCZiMfb2bHe6TRl1c0
+
+### Ver mi turno actual (debería ser null si no hay ninguno abierto)
+GET {{baseUrl}}/turnos/actual
+Authorization: Bearer {{token}}
+
+### Abrir turno
+POST {{baseUrl}}/turnos/apertura
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "efectivoInicial": 50000,
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0"
+}
+
+### Ver mi turno actual otra vez (ahora debería mostrar el que abrimos)
+GET {{baseUrl}}/turnos/actual?sedeId=798356e1-2df3-4e88-876a-bda1daa474f0
+Authorization: Bearer {{token}}
+
+### Intentar abrir OTRO turno en la misma sede (debe fallar con 409)
+POST {{baseUrl}}/turnos/apertura
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "efectivoInicial": 30000,
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0"
+}
+
+### Cerrar el turno (reemplaza el ID por el que te devolvió la apertura)
+
+POST {{baseUrl}}/turnos/9a19811c-532b-47ed-b0e6-78912d342078/cerrar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "efectivoDeclaradoCierre": 50000,
+  "observaciones": "Turno de prueba, sin ventas registradas"
+}
+
+### Ver historial de turnos
+GET {{baseUrl}}/turnos
+Authorization: Bearer {{token}}

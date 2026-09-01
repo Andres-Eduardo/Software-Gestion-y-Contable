@@ -16,6 +16,7 @@ import { authenticate } from "./middleware/auth.js";
 import sedesRoutes from "./routes/sedes.routes.js";
 import tercerosRoutes from "./routes/terceros.routes.js";
 import productosRoutes from "./routes/productos.routes.js";
+import turnosRoutes from "./routes/turnos.routes.js";
 
 const app = Fastify({ logger: true });
 
@@ -29,7 +30,7 @@ await app.register(jwt, { secret: process.env.JWT_SECRET as string });
 app.register(sedesRoutes);
 app.register(tercerosRoutes);
 app.register(productosRoutes);
-
+app.register(turnosRoutes);
 app.get("/health", async () => {
   return { status: "ok", service: "opa-api" };
 });
