@@ -1,5 +1,5 @@
 @baseUrl = http://127.0.0.1:3000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgxMjkxNjEsImV4cCI6MTc4ODE1Nzk2MX0.oNtYDuDj8RmSdiforxCCYTJKfhMe2Eso0SJJCkYUmKg
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgyMjMyODYsImV4cCI6MTc4ODI1MjA4Nn0.jLLzR3E9uqmGSS2HtazPp1O94pCZiMfb2bHe6TRl1c0
 
 ### Ver unidades de medida
 GET {{baseUrl}}/unidades-medida
@@ -50,3 +50,34 @@ Authorization: Bearer {{token}}
 ### Ver todos los terceros
 GET {{baseUrl}}/terceros
 Authorization: Bearer {{token}}
+
+### Crear un Producto vendible (Dona de Chocolate)
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "codigo": "PROD-001",
+  "nombre": "Dona de Chocolate",
+  "tipo": "VENDIBLE_PROPIO",
+  "unidadMedidaId": "cb674d5a-9979-4d19-b5dc-96d8273ca886",
+  "precioVenta": 4500,
+  "aplicaInc": true
+}
+
+### Crear un Producto insumo (Harina)
+POST {{baseUrl}}/productos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "codigo": "INS-001",
+  "nombre": "Harina de Trigo",
+  "tipo": "INSUMO",
+  "unidadMedidaId": "795ed845-4218-4f0f-b73a-334f5076592b"
+}
+
+### Ver todos los productos
+GET {{baseUrl}}/productos
+Authorization: Bearer {{token}}git add .
+git status
