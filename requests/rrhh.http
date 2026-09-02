@@ -1,0 +1,48 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzOTA3NTEsImV4cCI6MTc4ODQxOTU1MX0.2HJ9h8QdiKbBzSvHCc1XgH0k9587AUgSN7WyVFGjJ8s
+
+### 1. Crear Empleado (panadero, salario 1.500.000)
+POST {{baseUrl}}/empleados
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombreCompleto": "Juan Pérez",
+  "documento": "1065123456",
+  "fechaIngreso": "2025-01-15",
+  "salarioBase": 1500000,
+  "tipoContrato": "TERMINO_INDEFINIDO"
+}
+
+### 2. Registrar un Anticipo de 200.000 (usa el ID de empleado del paso 1)
+POST {{baseUrl}}/empleados/f54ede6c-f96f-40b8-b8b1-9751f60a6de1/cuenta-corriente
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tipo": "ANTICIPO",
+  "monto": 200000,
+  "descripcion": "Anticipo para imprevisto"
+}
+
+### 3. Ver cuenta corriente (saldoPendiente debería ser 200000)
+GET {{baseUrl}}/empleados/f54ede6c-f96f-40b8-b8b1-9751f60a6de1/cuenta-corriente
+Authorization: Bearer {{token}}
+
+### 4. Crear Nómina (período de prueba)
+POST {{baseUrl}}/nominas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "periodoInicio": "2026-09-01",
+  "periodoFin": "2026-09-15"
+}
+
+### 5. Generar liquidación (usa el ID de nómina del paso 4)
+POST {{baseUrl}}/nominas/3f332de9-2771-48f8-95f8-92195c72e500/generar
+Authorization: Bearer {{token}}
+
+### 6. Ver cuenta corriente otra vez (saldoPendiente debería bajar a 0, con el ABONO registrado)
+GET {{baseUrl}}/empleados/f54ede6c-f96f-40b8-b8b1-9751f60a6de1/cuenta-corriente
+Authorization: Bearer {{token}}
