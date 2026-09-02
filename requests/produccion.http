@@ -1,0 +1,65 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzMDU1ODUsImV4cCI6MTc4ODMzNDM4NX0.d06a_xgCOGzjvn5-NYrh8TTtRMEY6TGPWE5b74o-CTU
+
+### 1. Registrar 10000gr de Harina en Bodega Central (necesario antes de poder consumirla)
+POST {{baseUrl}}/movimientos-inventario/entrada
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productoId": "b8a99776-d017-43c5-af6f-caf47d9c1e91",
+  "bodegaDestinoId": "seed-bodega-central",
+  "cantidad": 10000,
+  "observaciones": "Compra de harina para producción"
+}
+
+### 2. Crear Receta "Dona de Chocolate v1" (rinde 50, usa 5000gr de harina)
+POST {{baseUrl}}/recetas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49",
+  "nombre": "Receta Dona Chocolate v1",
+  "rendimiento": 50,
+  "detalles": [
+    {
+      "insumoId": "b8a99776-d017-43c5-af6f-caf47d9c1e91",
+      "cantidad": 5000,
+      "unidadMedidaId": "795ed845-4218-4f0f-b73a-334f5076592b"
+    }
+  ]
+}
+
+### 3. Abrir Lote de Producción (usa el ID de receta que devolvió el paso 2)
+### 3. Abrir Lote de Producción
+POST {{baseUrl}}/lotes-produccion
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "recetaId": "fcbfc3be-587e-45fe-9617-daa8ba9901b6",
+  "sedeId": "seed-bodega-central"
+}
+
+### 4. Cerrar el Lote (usa el ID del lote que devolvió el paso 3, y el insumoId de Harina)
+### 4. Cerrar el Lote
+POST {{baseUrl}}/lotes-produccion/90ba0ba0-539f-4c2a-b059-104da21ce221/cerrar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cantidadProducidaReal": 48,
+  "insumos": [
+    { "insumoId": "b8a99776-d017-43c5-af6f-caf47d9c1e91", "cantidadReal": 5200 }
+  ],
+  "observaciones": "Se gastó más harina de lo previsto"
+}
+
+### 5. Ver stock de Harina en Bodega Central (debería ser 4800: 10000 - 5200)
+GET {{baseUrl}}/inventario/stock?sedeId=seed-bodega-central&productoId=b8a99776-d017-43c5-af6f-caf47d9c1e91
+Authorization: Bearer {{token}}
+
+### 6. Ver stock de Dona en Bodega Central (debería ser 48, recién ingresado)
+GET {{baseUrl}}/inventario/stock?sedeId=seed-bodega-central&productoId=f28237e6-70dc-4915-80e1-63dfe71c8f49
+Authorization: Bearer {{token}}

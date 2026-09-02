@@ -20,6 +20,7 @@ import turnosRoutes from "./routes/turnos.routes.js";
 import facturasRoutes from "./routes/facturas.routes.js";
 import cajaMenorRoutes from "./routes/cajamenor.routes.js";
 import inventarioRoutes from "./routes/inventario.routes.js";
+import produccionRoutes from "./routes/produccion.routes.js";
 
 const app = Fastify({ logger: true });
 
@@ -37,6 +38,7 @@ app.register(turnosRoutes);
 app.register(facturasRoutes);
 app.register(cajaMenorRoutes);
 app.register(inventarioRoutes);
+app.register(produccionRoutes);
 app.get("/health", async () => {
   return { status: "ok", service: "opa-api" };
 });
