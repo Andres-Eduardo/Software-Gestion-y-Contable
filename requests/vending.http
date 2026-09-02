@@ -1,0 +1,74 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzOTA3NTEsImV4cCI6MTc4ODQxOTU1MX0.2HJ9h8QdiKbBzSvHCc1XgH0k9587AUgSN7WyVFGjJ8s
+
+### 1. Crear Sede tipo Clínica Vending
+POST {{baseUrl}}/sedes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "nombre": "Clínica Valledupar",
+  "tipo": "CLINICA_VENDING",
+  "ciudad": "Valledupar"
+}
+
+### 2. Crear Máquina (usa el ID de sede del paso 1)
+POST {{baseUrl}}/maquinas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sedeId": "8bfc2206-bbc2-4ac0-abf0-e57655ef1870",
+  "codigo": "VND-001",
+  "nombre": "Máquina pasillo principal"
+}
+
+### 3. Crear Canister (usa el ID de máquina del paso 2, y el producto Dona)
+POST {{baseUrl}}/canisters
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "maquinaId": "7dbcdb78-8f93-4faa-9ea7-de7ae9d93aa6",
+
+  "numero": 1,
+  "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49",
+  "capacidadMaxima": 30
+}
+
+### 4. Primera auditoría (sin historial previo, venta teórica = 0)
+POST {{baseUrl}}/auditorias-vending
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "maquinaId": "7dbcdb78-8f93-4faa-9ea7-de7ae9d93aa6",
+  "canisters": [
+    { "canisterId": "87fba639-d1ee-4f02-a171-8fab03f8e7ab", "contadorInicial": 100, "existenciaFisica": 25, "cantidadSurtida": 5 }
+  ],
+  "monedas": [
+    { "denominacion": 1000, "cantidad": 3 },
+    { "denominacion": 500, "cantidad": 2 }
+  ]
+}
+
+### 5. Segunda auditoría (una semana después, contador subió 10 = se vendieron 10 donas)
+POST {{baseUrl}}/auditorias-vending
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "maquinaId": "7dbcdb78-8f93-4faa-9ea7-de7ae9d93aa6",
+  "canisters": [
+    { "canisterId": "87fba639-d1ee-4f02-a171-8fab03f8e7ab", "contadorInicial": 110, "existenciaFisica": 10, "cantidadSurtida": 0 }
+  ],
+  "monedas": [
+
+    { "denominacion": 1000, "cantidad": 40 },
+    { "denominacion": 500, "cantidad": 1 }
+  ]
+}
+
+### Ver máquinas existentes
+GET {{baseUrl}}/maquinas
+Authorization: Bearer {{token}}
