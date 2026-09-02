@@ -1,0 +1,52 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzOTA3NTEsImV4cCI6MTc4ODQxOTU1MX0.2HJ9h8QdiKbBzSvHCc1XgH0k9587AUgSN7WyVFGjJ8s
+
+### 1. Crear Factura a CRÉDITO (debe generar CxC automáticamente)
+POST {{baseUrl}}/facturas
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "sedeId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "terceroId": "b64e381c-7f62-4af3-a3ec-c5cf6bc0842c",
+  "detalles": [
+    { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 2 }
+  ],
+  "pagos": [
+    { "medioPago": "CREDITO", "monto": 9720 }
+  ]
+}
+
+### 2. Ver Cuentas por Cobrar (debería aparecer la que se acaba de crear, saldoPendiente 9720)
+GET {{baseUrl}}/cuentas-por-cobrar
+Authorization: Bearer {{token}}
+
+### 3. Registrar abono parcial (usa el ID de la CxC del paso 2)
+POST {{baseUrl}}/cuentas-por-cobrar/b6d45b09-8c72-47d9-b639-2eedc6c302be/pagos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "monto": 4000,
+  "medioPago": "EFECTIVO"
+}
+
+
+### 4. Ver Cuentas por Cobrar otra vez (saldoPendiente debería ser 5720, estado PARCIAL)
+GET {{baseUrl}}/cuentas-por-cobrar
+Authorization: Bearer {{token}}
+
+### 5. Crear Cuenta por Pagar (deuda con el proveedor jurídico)
+POST {{baseUrl}}/cuentas-por-pagar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "terceroId": "5fde4398-b2de-482f-a04c-893f90deae09",
+  "concepto": "Compra de insumos - Factura proveedor #001",
+  "montoOriginal": 150000
+}
+
+### 6. Ver Cuentas por Pagar
+GET {{baseUrl}}/cuentas-por-pagar
+Authorization: Bearer {{token}}

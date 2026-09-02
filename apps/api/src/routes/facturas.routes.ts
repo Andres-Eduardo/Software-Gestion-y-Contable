@@ -52,7 +52,15 @@ export default async function facturasRoutes(app: FastifyInstance) {
         .code(400)
         .send({ error: "La factura debe tener al menos un pago" });
     }
+    const totalCredito = pagos
+      .filter((p) => p.medioPago === "CREDITO")
+      .reduce((acc, p) => acc + p.monto, 0);
 
+    if (totalCredito > 0 && !terceroId) {
+      return reply
+        .code(400)
+        .send({ error: "Debe indicar un tercero para ventas a credito" });
+    }
     const sedeId =
       (rol === "ADMIN" || rol === "GERENTE") && sedeIdBody
         ? sedeIdBody
@@ -201,6 +209,36 @@ export default async function facturasRoutes(app: FastifyInstance) {
               usuarioConfirmaId: usuarioId,
               fechaConfirmacion: new Date(),
               observaciones: `Venta - Factura ${prefijo}-${numero}`,
+            },
+          });
+        }
+
+        // Descontar inventario automáticamente
+        for (const d of detallesData) {
+          await tx.movimientoInventario.create({
+            data: {
+              empresaId,
+              productoId: d.productoId,
+              bodegaOrigenId: sedeId,
+              cantidad: d.cantidad,
+              tipoMovimiento: "VENTA_SALIDA",
+              estado: "CONFIRMADO",
+              usuarioConfirmaId: usuarioId,
+              fechaConfirmacion: new Date(),
+              observaciones: `Venta - Factura ${prefijo}-${numero}`,
+            },
+          });
+        }
+
+        // Crear Cuenta por Cobrar automáticamente si hay pago a crédito
+        if (totalCredito > 0) {
+          await tx.cuentaPorCobrar.create({
+            data: {
+              facturaId: nuevaFactura.id,
+              terceroId: terceroId!,
+              montoOriginal: totalCredito,
+              saldoPendiente: totalCredito,
+              estado: "PENDIENTE",
             },
           });
         }
