@@ -24,6 +24,7 @@ import produccionRoutes from "./routes/produccion.routes.js";
 import vendingRoutes from "./routes/vending.routes.js";
 import rrhhRoutes from "./routes/rrhh.routes.js";
 import financieroRoutes from "./routes/financiero.routes.js";
+import reportesRoutes from "./routes/reportes.routes.js";
 
 const app = Fastify({ logger: true });
 
@@ -45,6 +46,7 @@ app.register(produccionRoutes);
 app.register(vendingRoutes);
 app.register(rrhhRoutes);
 app.register(financieroRoutes);
+app.register(reportesRoutes);
 app.get("/health", async () => {
   return { status: "ok", service: "opa-api" };
 });

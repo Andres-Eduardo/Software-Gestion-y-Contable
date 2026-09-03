@@ -1,0 +1,26 @@
+@baseUrl = http://127.0.0.1:3000
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgzOTA3NTEsImV4cCI6MTc4ODQxOTU1MX0.2HJ9h8QdiKbBzSvHCc1XgH0k9587AUgSN7WyVFGjJ8s
+
+### 1. Reporte de ventas (todas las sedes)
+GET {{baseUrl}}/reportes/ventas
+Authorization: Bearer {{token}}
+
+### 2. Reporte de descuadres
+GET {{baseUrl}}/reportes/descuadres
+Authorization: Bearer {{token}}
+
+### 3. Crear una Cuenta por Pagar YA VENCIDA (para probar el reporte)
+POST {{baseUrl}}/cuentas-por-pagar
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "terceroId": "5fde4398-b2de-482f-a04c-893f90deae09",
+  "concepto": "Factura proveedor vencida de prueba",
+  "montoOriginal": 80000,
+  "fechaVencimiento": "2026-08-01"
+}
+
+### 4. Reporte de cuentas vencidas (debería mostrar la que acabamos de crear)
+GET {{baseUrl}}/reportes/cuentas-vencidas
+Authorization: Bearer {{token}}
