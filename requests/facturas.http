@@ -1,5 +1,5 @@
 @baseUrl = http://127.0.0.1:3000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODgyMjMyODYsImV4cCI6MTc4ODI1MjA4Nn0.jLLzR3E9uqmGSS2HtazPp1O94pCZiMfb2bHe6TRl1c0
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODkwNTMzMDUsImV4cCI6MTc4OTA4MjEwNX0.yg3DAHyixuH_r8_FFDQ5Xoyug3SdI_-IriiE_TNjTRw
 
 ### Abrir turno de nuevo (el anterior ya está cerrado)
 POST {{baseUrl}}/turnos/apertura
@@ -84,3 +84,7 @@ Authorization: Bearer {{token}}
   ],
   "observaciones": "Se olvidó cobrar una dona adicional"
 }
+
+### Ver el Payload Canónico de una factura
+GET {{baseUrl}}/facturas/4503dab9-d1e3-43a4-a79f-50520237ae53/payload-canonico
+Authorization: Bearer {{token}}
