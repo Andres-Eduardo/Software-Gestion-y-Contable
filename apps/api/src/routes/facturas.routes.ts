@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "db";
 import { authenticate } from "../middleware/auth.js";
 import { calcularStock } from "../utils/inventario.util.js";
-import { mapearFacturaAPayloadCanonico } from "dian-connector";
+import { mapearFacturaAPayloadCanonico, generarXmlUBL } from "dian-connector";
 
 const IVA_PORCENTAJE = 19;
 const INC_PORCENTAJE = 8;
@@ -297,6 +297,33 @@ export default async function facturasRoutes(app: FastifyInstance) {
       if (!factura)
         return reply.code(404).send({ error: "Factura no encontrada" });
       return mapearFacturaAPayloadCanonico(factura as any);
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/facturas/:id/xml",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { empresaId } = (request as any).user;
+      const factura = await prisma.factura.findFirst({
+        where: { id: request.params.id, empresaId },
+        include: {
+          empresa: true,
+          tercero: true,
+          pagos: true,
+          detalles: {
+            include: { producto: { include: { unidadMedida: true } } },
+          },
+        },
+      });
+      if (!factura)
+        return reply.code(404).send({ error: "Factura no encontrada" });
+
+      const payload = mapearFacturaAPayloadCanonico(factura as any);
+      const xml = generarXmlUBL(payload);
+
+      reply.header("Content-Type", "application/xml");
+      return xml;
     },
   );
 
