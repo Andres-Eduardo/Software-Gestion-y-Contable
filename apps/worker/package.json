@@ -1,0 +1,20 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "bullmq": "^5.0.0",
+    "db": "workspace:*",
+    "dian-connector": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "@types/node": "^26.2.0"
+  }
+}

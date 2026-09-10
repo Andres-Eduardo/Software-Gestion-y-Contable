@@ -4,3 +4,4 @@ node_modules
 *.pfx
 *.p12
 backups/
+storage/

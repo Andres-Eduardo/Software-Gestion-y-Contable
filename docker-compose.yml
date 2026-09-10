@@ -17,5 +17,15 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7
+    container_name: opa_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - opa_redis_data:/data
+
 volumes:
   opa_postgres_data:
+  opa_redis_data:

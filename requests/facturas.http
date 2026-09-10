@@ -100,3 +100,7 @@ Authorization: Bearer {{token}}
 ### Ver el XML firmado (simulado) de una factura
 GET {{baseUrl}}/facturas/4503dab9-d1e3-43a4-a79f-50520237ae53/xml-firmado
 Authorization: Bearer {{token}}
+
+### Ver el estado de la factura después de un par de segundos
+GET {{baseUrl}}/facturas/fcdeb111-398e-4c2d-9870-183e93849c6e
+Authorization: Bearer {{token}}

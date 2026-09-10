@@ -7,6 +7,7 @@ import {
   generarXmlUBL,
   calcularCufeDesdePayload,
   FirmadorMock,
+  encolarProcesoFactura,
 } from "dian-connector";
 
 const IVA_PORCENTAJE = 19;
@@ -220,23 +221,6 @@ export default async function facturasRoutes(app: FastifyInstance) {
           });
         }
 
-        // Descontar inventario automáticamente
-        for (const d of detallesData) {
-          await tx.movimientoInventario.create({
-            data: {
-              empresaId,
-              productoId: d.productoId,
-              bodegaOrigenId: sedeId,
-              cantidad: d.cantidad,
-              tipoMovimiento: "VENTA_SALIDA",
-              estado: "CONFIRMADO",
-              usuarioConfirmaId: usuarioId,
-              fechaConfirmacion: new Date(),
-              observaciones: `Venta - Factura ${prefijo}-${numero}`,
-            },
-          });
-        }
-
         // Crear Cuenta por Cobrar automáticamente si hay pago a crédito
         if (totalCredito > 0) {
           await tx.cuentaPorCobrar.create({
@@ -252,6 +236,8 @@ export default async function facturasRoutes(app: FastifyInstance) {
 
         return nuevaFactura;
       });
+
+      await encolarProcesoFactura(factura.id);
 
       return factura;
     } catch (err: any) {

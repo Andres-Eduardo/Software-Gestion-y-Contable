@@ -4,3 +4,6 @@ export * from "./xml/ubl-generator.js";
 export * from "./cufe/calcular-cufe.js";
 export * from "./firma/firmador.interface.js";
 export * from "./firma/firmador-mock.js";
+export * from "./adapter/dian-adapter.interface.js";
+export * from "./adapter/dian-adapter-mock.js";
+export * from "./queue/factura-queue.js";
