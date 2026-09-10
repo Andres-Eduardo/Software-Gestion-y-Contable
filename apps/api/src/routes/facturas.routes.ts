@@ -6,10 +6,12 @@ import {
   mapearFacturaAPayloadCanonico,
   generarXmlUBL,
   calcularCufeDesdePayload,
+  FirmadorMock,
 } from "dian-connector";
 
 const IVA_PORCENTAJE = 19;
 const INC_PORCENTAJE = 8;
+const firmador = new FirmadorMock();
 
 interface DetalleInput {
   productoId: string;
@@ -328,6 +330,36 @@ export default async function facturasRoutes(app: FastifyInstance) {
 
       reply.header("Content-Type", "application/xml");
       return xml;
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/facturas/:id/xml-firmado",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { empresaId } = (request as any).user;
+      const factura = await prisma.factura.findFirst({
+        where: { id: request.params.id, empresaId },
+        include: {
+          empresa: true,
+          tercero: true,
+          pagos: true,
+          detalles: {
+            include: { producto: { include: { unidadMedida: true } } },
+          },
+        },
+      });
+      if (!factura)
+        return reply.code(404).send({ error: "Factura no encontrada" });
+
+      const payload = mapearFacturaAPayloadCanonico(factura as any);
+      const xmlSinFirmar = generarXmlUBL(payload);
+      const { xmlFirmado, esFirmaSimulada } =
+        await firmador.firmar(xmlSinFirmar);
+
+      reply.header("X-Firma-Simulada", String(esFirmaSimulada));
+      reply.header("Content-Type", "application/xml");
+      return xmlFirmado;
     },
   );
 
