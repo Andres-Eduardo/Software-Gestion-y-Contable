@@ -2,7 +2,11 @@ import type { FastifyInstance } from "fastify";
 import { prisma } from "db";
 import { authenticate } from "../middleware/auth.js";
 import { calcularStock } from "../utils/inventario.util.js";
-import { mapearFacturaAPayloadCanonico, generarXmlUBL } from "dian-connector";
+import {
+  mapearFacturaAPayloadCanonico,
+  generarXmlUBL,
+  calcularCufeDesdePayload,
+} from "dian-connector";
 
 const IVA_PORCENTAJE = 19;
 const INC_PORCENTAJE = 8;
@@ -448,6 +452,36 @@ export default async function facturasRoutes(app: FastifyInstance) {
       } catch (err: any) {
         return reply.code(400).send({ error: err.message });
       }
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    "/facturas/:id/cufe",
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const { empresaId } = (request as any).user;
+      const factura = await prisma.factura.findFirst({
+        where: { id: request.params.id, empresaId },
+        include: {
+          empresa: true,
+          tercero: true,
+          pagos: true,
+          detalles: {
+            include: { producto: { include: { unidadMedida: true } } },
+          },
+        },
+      });
+      if (!factura)
+        return reply.code(404).send({ error: "Factura no encontrada" });
+
+      const payload = mapearFacturaAPayloadCanonico(factura as any);
+      const cufe = calcularCufeDesdePayload(
+        payload,
+        process.env.DIAN_CLAVE_TECNICA as string,
+        process.env.DIAN_TIPO_AMBIENTE as string,
+      );
+
+      return { facturaId: factura.id, cufe };
     },
   );
 
