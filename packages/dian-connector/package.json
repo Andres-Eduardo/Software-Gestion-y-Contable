@@ -5,6 +5,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "db": "workspace:*"
+    "db": "workspace:*",
+    "xmlbuilder2": "^4.0.3"
   }
 }

@@ -88,3 +88,7 @@ Authorization: Bearer {{token}}
 ### Ver el Payload Canónico de una factura
 GET {{baseUrl}}/facturas/4503dab9-d1e3-43a4-a79f-50520237ae53/payload-canonico
 Authorization: Bearer {{token}}
+
+### Ver el XML UBL de una factura
+GET {{baseUrl}}/facturas/4503dab9-d1e3-43a4-a79f-50520237ae53/xml
+Authorization: Bearer {{token}}
