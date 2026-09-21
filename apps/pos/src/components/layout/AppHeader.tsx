@@ -52,7 +52,8 @@ export default function AppHeader() {
         </div>
 
         <button
-          onClick={cerrarSesion}
+          onClick={() => setMenuAbierto((v) => !v)}
+          aria-label="Abrir menú de usuario"
           className="md:hidden w-8 h-8 rounded-full bg-caramel text-espresso flex items-center justify-center text-xs font-bold"
         >
           {iniciales}
@@ -60,30 +61,61 @@ export default function AppHeader() {
       </div>
 
       {menuAbierto && (
-        <div className="md:hidden absolute left-0 right-0 top-full bg-white border-b border-ink/10 shadow-lg z-20">
-          {secciones.map((seccion) => {
-            const Icono = ICONO_SECCION[seccion];
-            return (
-              <NavLink
-                key={seccion}
-                to={RUTA_SECCION[seccion]}
-                onClick={() => setMenuAbierto(false)}
-                className="flex items-center gap-3 px-5 py-3 text-sm text-ink border-b border-ink/5 last:border-0"
-              >
-                <Icono />
-                {NOMBRE_SECCION[seccion]}
-              </NavLink>
-            );
-          })}
+        <div className="md:hidden absolute left-0 right-0 top-full bg-paper border-b border-ink/10 shadow-lg z-20 p-4">
+          <p className="text-xs font-semibold text-ink/45 uppercase tracking-wide mb-3">
+            Secciones
+          </p>
+          <div className="grid grid-cols-2 gap-2.5 mb-4">
+            {secciones.map((seccion) => {
+              const Icono = ICONO_SECCION[seccion];
+              return (
+                <NavLink
+                  key={seccion}
+                  to={RUTA_SECCION[seccion]}
+                  onClick={() => setMenuAbierto(false)}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center gap-2 rounded-xl border bg-white py-4 px-3 ${
+                      isActive ? "border-caramel/50" : "border-ink/10"
+                    }`
+                  }
+                >
+                  {({ isActive }: { isActive: boolean }) => (
+                    <>
+                      <Icono
+                        className={isActive ? "text-caramel" : "text-ink"}
+                      />
+                      <span
+                        className={
+                          isActive
+                            ? "text-sm font-semibold text-espresso"
+                            : "text-sm text-ink/70"
+                        }
+                      >
+                        {NOMBRE_SECCION[seccion]}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+
           {turno && (
             <Link
               to="/cerrar-turno"
               onClick={() => setMenuAbierto(false)}
-              className="flex items-center gap-3 px-5 py-3 text-sm text-brick border-b border-ink/5"
+              className="block text-sm text-brick font-medium py-2 border-t border-ink/10 pt-3"
             >
               Cerrar turno
             </Link>
           )}
+
+          <button
+            onClick={cerrarSesion}
+            className="block w-full text-left text-sm text-brick font-medium py-2 border-t border-ink/10 pt-3 mt-1"
+          >
+            Cerrar sesión
+          </button>
         </div>
       )}
     </div>

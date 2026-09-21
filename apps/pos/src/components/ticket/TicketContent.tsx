@@ -10,6 +10,7 @@ import { apiFetch } from "../../api/client";
 import TicketSelector from "./TicketSelector";
 import TicketItemsList from "./TicketItemsList";
 import ClienteCredito from "./ClienteCredito";
+import ReciboModal from "./ReciboModal";
 
 export default function TicketContent() {
   const token = useAuthStore((s) => s.token)!;
@@ -22,6 +23,9 @@ export default function TicketContent() {
   const ventasCerradasCount = useTicketsStore((s) => s.ventasCerradasCount);
 
   const [cobrando, setCobrando] = useState(false);
+  const [facturaParaRecibo, setFacturaParaRecibo] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
 
   const { subtotal, totalInc, totalIva, total } = calcularTotalesTicket(
@@ -35,7 +39,7 @@ export default function TicketContent() {
     setCobrando(true);
     setError(null);
     try {
-      await apiFetch("/facturas", {
+      const factura = await apiFetch<{ id: string }>("/facturas", {
         method: "POST",
         token,
         body: JSON.stringify({
@@ -55,11 +59,21 @@ export default function TicketContent() {
       });
       registrarVentaCerrada();
       cerrarTicket(ticket.id);
+      setFacturaParaRecibo(factura.id);
     } catch (err: any) {
       setError(err.message ?? "No se pudo procesar la venta.");
     } finally {
       setCobrando(false);
     }
+  }
+
+  {
+    facturaParaRecibo && (
+      <ReciboModal
+        facturaId={facturaParaRecibo}
+        onClose={() => setFacturaParaRecibo(null)}
+      />
+    );
   }
 
   return (
