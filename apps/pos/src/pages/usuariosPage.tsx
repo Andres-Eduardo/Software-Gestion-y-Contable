@@ -33,6 +33,7 @@ export default function UsuariosPage() {
   const [sedeId, setSedeId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const usuarioActual = useAuthStore((s) => s.usuario);
 
   useEffect(() => {
     cargarUsuarios(token);
@@ -210,12 +211,14 @@ export default function UsuariosPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => handleToggleActivo(u.id, u.activo)}
-                        className="text-caramel text-xs font-medium hover:underline"
-                      >
-                        {u.activo ? "Desactivar" : "Activar"}
-                      </button>
+                      {u.id !== usuarioActual?.sub && (
+                        <button
+                          onClick={() => handleToggleActivo(u.id, u.activo)}
+                          className="text-caramel text-xs font-medium hover:underline"
+                        >
+                          {u.activo ? "Desactivar" : "Activar"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -13,17 +13,16 @@ export async function apiFetch<T>(
   const response = await fetch(`${BASE_URL}${path}`, {
     ...resto,
     headers: {
-      "Content-Type": "application/json",
+      ...(resto.body ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ error: "Error desconocido" }));
-    throw new Error(error.error ?? `Error ${response.status}`);
+    const body = await response.json().catch(() => ({}));
+    const mensaje = body.message ?? body.error ?? `Error ${response.status}`;
+    throw new Error(mensaje);
   }
 
   return response.json();

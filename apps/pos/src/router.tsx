@@ -5,6 +5,9 @@ import InicioPage from "./pages/InicioPage";
 import CerrarTurnoPage from "./pages/CerrarTurnoPage";
 import UsuariosPage from "./pages/usuariosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import InventarioPage from "./pages/inventarioPage";
+import ProduccionPage from "./pages/produccionPage";
+import ReportesPage from "./pages/ReportesPage";
 import RutaProtegida from "./components/RutaProtegida";
 import RutaConRol from "./components/layout/RutaConRol";
 
@@ -25,27 +28,15 @@ export const router = createBrowserRouter([
       },
       {
         element: <RutaConRol seccion="inventario" />,
-        children: [
-          {
-            path: "/inventario",
-            element: <PlaceholderPage titulo="Inventario" />,
-          },
-        ],
+        children: [{ path: "/inventario", element: <InventarioPage /> }],
       },
       {
         element: <RutaConRol seccion="produccion" />,
-        children: [
-          {
-            path: "/produccion",
-            element: <PlaceholderPage titulo="Producción" />,
-          },
-        ],
+        children: [{ path: "/produccion", element: <ProduccionPage /> }],
       },
       {
         element: <RutaConRol seccion="reportes" />,
-        children: [
-          { path: "/reportes", element: <PlaceholderPage titulo="Reportes" /> },
-        ],
+        children: [{ path: "/reportes", element: <ReportesPage /> }],
       },
       {
         element: <RutaConRol seccion="usuarios" />,
