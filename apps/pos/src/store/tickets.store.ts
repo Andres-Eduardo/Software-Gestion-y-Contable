@@ -44,6 +44,7 @@ interface TicketsState {
   incrementar: (ticketId: string, productoId: string) => void;
   decrementar: (ticketId: string, productoId: string) => void;
   registrarVentaCerrada: () => void;
+  reiniciar: () => void;
 }
 
 function crearTicketVacio(): Ticket {
@@ -154,6 +155,15 @@ export const useTicketsStore = create<TicketsState>()(
         set((state) => ({
           ventasCerradasCount: state.ventasCerradasCount + 1,
         })),
+
+      reiniciar: () => {
+        const nuevo = crearTicketVacio();
+        set({
+          tickets: [nuevo],
+          ticketActivoId: nuevo.id,
+          ventasCerradasCount: 0,
+        });
+      },
     }),
 
     { name: "opa-tickets" },

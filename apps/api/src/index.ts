@@ -25,6 +25,7 @@ import vendingRoutes from "./routes/vending.routes.js";
 import rrhhRoutes from "./routes/rrhh.routes.js";
 import financieroRoutes from "./routes/financiero.routes.js";
 import reportesRoutes from "./routes/reportes.routes.js";
+import usuariosRoutes from "./routes/usuarios.routes.js";
 
 const app = Fastify({ logger: true });
 
@@ -47,6 +48,7 @@ app.register(vendingRoutes);
 app.register(rrhhRoutes);
 app.register(financieroRoutes);
 app.register(reportesRoutes);
+app.register(usuariosRoutes);
 app.get("/health", async () => {
   return { status: "ok", service: "opa-api" };
 });
@@ -71,12 +73,21 @@ app.post<{ Body: { email: string; password: string } }>(
       return reply.code(401).send({ error: "Credenciales inválidas" });
     }
 
+    if (!usuario.activo) {
+      return reply
+        .code(403)
+        .send({
+          error: "Este usuario está inactivo. Contacta a un administrador.",
+        });
+    }
+
     const token = app.jwt.sign(
       {
         sub: usuario.id,
         rol: usuario.rol,
         sedeId: usuario.sedeId,
         empresaId: usuario.empresaId,
+        nombreCompleto: usuario.nombreCompleto,
       },
       { expiresIn: "8h" },
     );

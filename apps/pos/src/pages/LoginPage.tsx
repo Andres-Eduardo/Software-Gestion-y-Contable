@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/auth.store";
 import { rutaInicioPorRol } from "../utils/roles";
+import { useTicketsStore } from "../store/tickets.store";
+import { useTurnoStore } from "../store/turno.store";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -18,6 +20,8 @@ export default function LoginPage() {
     setCargando(true);
     try {
       await login(email, password);
+      useTicketsStore.getState().reiniciar();
+      useTurnoStore.getState().reiniciar();
       const rol = useAuthStore.getState().usuario?.rol;
       navigate(rutaInicioPorRol(rol));
     } catch (err: any) {

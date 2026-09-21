@@ -6,6 +6,7 @@ interface UsuarioAutenticado {
   rol: string;
   sedeId: string | null;
   empresaId: string;
+  nombreCompleto?: string;
 }
 
 interface AuthState {

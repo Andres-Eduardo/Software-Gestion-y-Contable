@@ -14,6 +14,7 @@ interface TurnoState {
   cargando: boolean;
   cargarTurnoActual: () => Promise<void>;
   abrirTurno: (efectivoInicial: number) => Promise<void>;
+  reiniciar: () => void;
 }
 
 export const useTurnoStore = create<TurnoState>((set) => ({
@@ -40,4 +41,6 @@ export const useTurnoStore = create<TurnoState>((set) => ({
     });
     set({ turno });
   },
+
+  reiniciar: () => set({ turno: null, cargando: false }),
 }));

@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useAuthStore } from "../../store/auth.store";
+import { useTurnoStore } from "../../store/turno.store";
+import { cerrarSesion } from "../../store/session";
 import {
   seccionesVisibles,
   NOMBRE_SECCION,
   RUTA_SECCION,
   ICONO_SECCION,
 } from "../../utils/roles";
+import { obtenerIniciales } from "../../utils/nombre";
 import { IconMenu } from "../icons";
 
 export default function AppHeader() {
-  const logout = useAuthStore((s) => s.logout);
-  const rol = useAuthStore((s) => s.usuario?.rol);
-  const secciones = seccionesVisibles(rol);
+  const usuario = useAuthStore((s) => s.usuario);
+  const turno = useTurnoStore((s) => s.turno);
+  const secciones = seccionesVisibles(usuario?.rol);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  const iniciales = "JP"; // TODO: derivar del nombre real cuando el token lo incluya
+  const iniciales = obtenerIniciales(usuario?.nombreCompleto);
 
   return (
     <div className="relative">
@@ -31,14 +34,25 @@ export default function AppHeader() {
         <h1 className="font-display text-xl md:text-2xl text-espresso">Opa</h1>
 
         <div className="hidden md:flex items-center gap-5 text-sm text-ink/60">
-          <span className="text-ink font-medium">{iniciales}</span>
-          <button onClick={logout} className="hover:text-brick transition">
+          <span className="text-ink font-medium">
+            {usuario?.nombreCompleto ?? "—"}
+          </span>
+
+          {turno && (
+            <Link to="/cerrar-turno" className="hover:text-espresso transition">
+              Cerrar turno
+            </Link>
+          )}
+          <button
+            onClick={cerrarSesion}
+            className="hover:text-brick transition"
+          >
             Cerrar sesión
           </button>
         </div>
 
         <button
-          onClick={logout}
+          onClick={cerrarSesion}
           className="md:hidden w-8 h-8 rounded-full bg-caramel text-espresso flex items-center justify-center text-xs font-bold"
         >
           {iniciales}
@@ -61,6 +75,15 @@ export default function AppHeader() {
               </NavLink>
             );
           })}
+          {turno && (
+            <Link
+              to="/cerrar-turno"
+              onClick={() => setMenuAbierto(false)}
+              className="flex items-center gap-3 px-5 py-3 text-sm text-brick border-b border-ink/5"
+            >
+              Cerrar turno
+            </Link>
+          )}
         </div>
       )}
     </div>

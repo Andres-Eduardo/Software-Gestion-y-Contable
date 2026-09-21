@@ -59,6 +59,20 @@ async function main() {
     skipDuplicates: true,
   });
 
+  const passwordCajera = await bcrypt.hash("cajera123", 10);
+  await prisma.usuario.upsert({
+    where: { email: "cajera@opa.test" },
+    update: {},
+    create: {
+      empresaId: empresa.id,
+      nombreCompleto: "María Cajera",
+      email: "cajera@opa.test",
+      passwordHash: passwordCajera,
+      rol: "CAFETERIA",
+      sedeId: "798356e1-2df3-4e88-876a-bda1daa474f0",
+    },
+  });
+
   console.log("Seed completado:");
   console.log({ empresa: empresa.razonSocial, admin: admin.email });
 
