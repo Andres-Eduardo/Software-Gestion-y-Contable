@@ -89,6 +89,9 @@ export default async function facturasRoutes(app: FastifyInstance) {
       });
     }
 
+    // Si TODOS los pagos son en efectivo, la factura es interna: nunca sale hacia la DIAN.
+    const soloEfectivo = pagos.every((p) => p.medioPago === "EFECTIVO");
+
     const turnoId = turno.id;
     const productoIds = detalles.map((d) => d.productoId);
     const productos = await prisma.producto.findMany({
@@ -185,7 +188,7 @@ export default async function facturasRoutes(app: FastifyInstance) {
           data: {
             empresaId,
             sedeId,
-            turnoId,
+            turnoId: turno.id,
             usuarioId,
             terceroId,
             tipoDocumento: "FACTURA_VENTA",
@@ -197,7 +200,7 @@ export default async function facturasRoutes(app: FastifyInstance) {
             totalIva,
             totalInc,
             total,
-            estadoDian: "PENDIENTE",
+            estadoDian: soloEfectivo ? "INTERNA" : "PENDIENTE",
             detalles: { create: detallesData },
             pagos: { create: pagos },
           },
@@ -237,7 +240,9 @@ export default async function facturasRoutes(app: FastifyInstance) {
         return nuevaFactura;
       });
 
-      await encolarProcesoFactura(factura.id);
+      if (!soloEfectivo) {
+        await encolarProcesoFactura(factura.id);
+      }
 
       return factura;
     } catch (err: any) {

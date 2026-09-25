@@ -1,5 +1,5 @@
 @baseUrl = http://127.0.0.1:3000
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJpYXQiOjE3ODkwNTMzMDUsImV4cCI6MTc4OTA4MjEwNX0.yg3DAHyixuH_r8_FFDQ5Xoyug3SdI_-IriiE_TNjTRw
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MTkzNDgyMC05MDE4LTQyNDgtODAyZC02OTAyODg0YWYwZWIiLCJyb2wiOiJBRE1JTiIsInNlZGVJZCI6InNlZWQtYm9kZWdhLWNlbnRyYWwiLCJlbXByZXNhSWQiOiJiODkyNTJmZC05MTZkLTQ2MDgtYmFmMC1iMmJlOWYzYjQzZTIiLCJub21icmVDb21wbGV0byI6IkFkbWluaXN0cmFkb3IgT3BhIiwiaWF0IjoxNzkwMzU2NjMwLCJleHAiOjE3OTAzODU0MzB9.NYFWt7x0GWQGuUr2Zm3vtsJ9tsOH01sHyONiBGI-3YQ
 
 ### Abrir turno de nuevo (el anterior ya está cerrado)
 POST {{baseUrl}}/turnos/apertura
@@ -23,8 +23,21 @@ Authorization: Bearer {{token}}
     { "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49", "cantidad": 2 }
   ],
   "pagos": [
-    { "medioPago": "EFECTIVO", "monto": 9720 }
+    { "medioPago": "NEQUI", "monto": 9720 }
   ]
+}
+
+### Reabastecer Dona de Chocolate en Cafetería Valledupar
+POST {{baseUrl}}/movimientos-inventario
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productoId": "f28237e6-70dc-4915-80e1-63dfe71c8f49",
+  "bodegaDestinoId": "798356e1-2df3-4e88-876a-bda1daa474f0",
+  "cantidad": 100,
+  "tipoMovimiento": "COMPRA_ENTRADA",
+  "estado": "CONFIRMADO"
 }
 
 ### Intentar crear una Factura con pagos que NO cuadran (debe fallar con 400)
@@ -102,5 +115,14 @@ GET {{baseUrl}}/facturas/4503dab9-d1e3-43a4-a79f-50520237ae53/xml-firmado
 Authorization: Bearer {{token}}
 
 ### Ver el estado de la factura después de un par de segundos
-GET {{baseUrl}}/facturas/fcdeb111-398e-4c2d-9870-183e93849c6e
+GET {{baseUrl}}/facturas/7d268ce7-cdf4-45d3-ba0a-2bc861073948
 Authorization: Bearer {{token}}
+
+### Despachar el movimiento
+POST {{baseUrl}}/movimientos-inventario/b3a443c6-c7ea-4a4b-be0f-3b6e9054a6cc/despachar
+Authorization: Bearer {{token}}
+
+### Confirmar recepción (esto sí suma el stock)
+POST {{baseUrl}}/movimientos-inventario/b3a443c6-c7ea-4a4b-be0f-3b6e9054a6cc/confirmar
+Authorization: Bearer {{token}}
+
