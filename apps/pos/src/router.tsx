@@ -10,6 +10,7 @@ import ProduccionPage from "./pages/produccionPage";
 import ReportesPage from "./pages/ReportesPage";
 import RutaProtegida from "./components/RutaProtegida";
 import RutaConRol from "./components/layout/RutaConRol";
+import MermasPage from "./pages/MermasPage";
 
 export const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/login" replace /> },
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
         element: <RutaConRol seccion="usuarios" />,
         children: [{ path: "/usuarios", element: <UsuariosPage /> }],
       },
+      { path: "/mermas", element: <MermasPage /> },
     ],
   },
 ]);

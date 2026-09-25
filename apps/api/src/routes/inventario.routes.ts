@@ -38,6 +38,10 @@ export default async function inventarioRoutes(app: FastifyInstance) {
     },
   );
 
+  app.get("/motivos-merma", { preHandler: [authenticate] }, async () => {
+    return prisma.motivoMerma.findMany({ orderBy: { nombre: "asc" } });
+  });
+
   // Registrar entrada directa (ej. compra a proveedor) — confirmada de inmediato
   app.post<{
     Body: {

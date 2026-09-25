@@ -10,7 +10,9 @@ import { apiFetch } from "../../api/client";
 import TicketSelector from "./TicketSelector";
 import TicketItemsList from "./TicketItemsList";
 import ClienteCredito from "./ClienteCredito";
+import MedioPagoSelector from "./MedioPagoSelector";
 import ReciboModal from "./ReciboModal";
+import AvisoAbrirTurno from "./AvisoAbrirTurno";
 
 export default function TicketContent() {
   const token = useAuthStore((s) => s.token)!;
@@ -23,10 +25,15 @@ export default function TicketContent() {
   const ventasCerradasCount = useTicketsStore((s) => s.ventasCerradasCount);
 
   const [cobrando, setCobrando] = useState(false);
-  const [facturaParaRecibo, setFacturaParaRecibo] = useState<string | null>(
-    null,
-  );
   const [error, setError] = useState<string | null>(null);
+  const [facturaParaRecibo, setFacturaParaRecibo] = useState<{
+    id: string;
+    prefijo: string;
+    numero: number;
+
+    total: string;
+  } | null>(null);
+  const [mostrarAvisoTurno, setMostrarAvisoTurno] = useState(false);
 
   const { subtotal, totalInc, totalIva, total } = calcularTotalesTicket(
     ticket.items,
@@ -34,32 +41,41 @@ export default function TicketContent() {
   const puedeCobrar =
     ticket.items.length > 0 && (!ticket.esCredito || ticket.cliente !== null);
 
-  async function handleCobrar() {
-    if (!puedeCobrar || !turno) return;
+  function medioPagoParaEnviar(): string {
+    if (ticket.esCredito) return "CREDITO";
+    if (ticket.medioPagoTipo === "ELECTRONICO")
+      return ticket.medioPagoElectronico;
+    return "EFECTIVO";
+  }
+
+  async function procesarCobro() {
+    const turnoActual = useTurnoStore.getState().turno;
+    if (!turnoActual) return;
+
     setCobrando(true);
     setError(null);
     try {
-      const factura = await apiFetch<{ id: string }>("/facturas", {
+      const factura = await apiFetch<{
+        id: string;
+        prefijo: string;
+        numero: number;
+        total: string;
+      }>("/facturas", {
         method: "POST",
         token,
         body: JSON.stringify({
-          sedeId: turno.sedeId,
+          sedeId: turnoActual.sedeId,
           terceroId: ticket.esCredito ? ticket.cliente?.id : undefined,
           detalles: ticket.items.map((i) => ({
             productoId: i.id,
             cantidad: i.cantidad,
           })),
-          pagos: [
-            {
-              medioPago: ticket.esCredito ? "CREDITO" : "EFECTIVO",
-              monto: total,
-            },
-          ],
+          pagos: [{ medioPago: medioPagoParaEnviar(), monto: total }],
         }),
       });
       registrarVentaCerrada();
       cerrarTicket(ticket.id);
-      setFacturaParaRecibo(factura.id);
+      setFacturaParaRecibo(factura);
     } catch (err: any) {
       setError(err.message ?? "No se pudo procesar la venta.");
     } finally {
@@ -67,13 +83,13 @@ export default function TicketContent() {
     }
   }
 
-  {
-    facturaParaRecibo && (
-      <ReciboModal
-        facturaId={facturaParaRecibo}
-        onClose={() => setFacturaParaRecibo(null)}
-      />
-    );
+  function handleCobrar() {
+    if (!puedeCobrar) return;
+    if (!turno) {
+      setMostrarAvisoTurno(true);
+      return;
+    }
+    procesarCobro();
   }
 
   return (
@@ -96,11 +112,13 @@ export default function TicketContent() {
         Venta a crédito
       </label>
 
-      {ticket.esCredito && (
+      {ticket.esCredito ? (
         <ClienteCredito
           cliente={ticket.cliente}
           onAsignar={(c) => asignarCliente(ticket.id, c)}
         />
+      ) : (
+        <MedioPagoSelector ticket={ticket} />
       )}
 
       <div className="flex-1 min-h-0">
@@ -147,6 +165,23 @@ export default function TicketContent() {
       >
         {cobrando ? "Procesando..." : "Cobrar"}
       </button>
+
+      {facturaParaRecibo && (
+        <ReciboModal
+          factura={facturaParaRecibo}
+          onClose={() => setFacturaParaRecibo(null)}
+        />
+      )}
+
+      {mostrarAvisoTurno && (
+        <AvisoAbrirTurno
+          onListo={() => {
+            setMostrarAvisoTurno(false);
+            procesarCobro();
+          }}
+          onCancelar={() => setMostrarAvisoTurno(false)}
+        />
+      )}
     </div>
   );
 }

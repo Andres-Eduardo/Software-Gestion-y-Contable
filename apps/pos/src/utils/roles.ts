@@ -4,6 +4,7 @@ export type Seccion =
   | "inicio"
   | "venta"
   | "inventario"
+  | "mermas"
   | "produccion"
   | "reportes"
   | "usuarios";
@@ -11,8 +12,8 @@ export type Seccion =
 const SECCIONES_POR_ROL: Record<string, Seccion[]> = {
   ADMIN: ["inicio", "inventario", "produccion", "reportes", "usuarios"],
   GERENTE: ["inicio", "inventario", "produccion", "reportes", "usuarios"],
-  CAFETERIA: ["venta", "inventario"],
-  CARRITO: ["venta", "inventario"],
+  CAFETERIA: ["inicio", "venta", "inventario", "mermas"],
+  CARRITO: ["inicio", "venta", "inventario", "mermas"],
   DOMICILIARIO: ["inventario"],
   PRODUCCION: ["produccion"],
 };
@@ -30,7 +31,7 @@ export const NOMBRE_SECCION: Record<Seccion, string> = {
   inicio: "Inicio",
   venta: "Venta",
   inventario: "Inventario",
-
+  mermas: "Mermas",
   produccion: "Producción",
   reportes: "Reportes",
   usuarios: "Usuarios",
@@ -40,6 +41,7 @@ export const RUTA_SECCION: Record<Seccion, string> = {
   inicio: "/inicio",
   venta: "/venta",
   inventario: "/inventario",
+  mermas: "/mermas",
   produccion: "/produccion",
   reportes: "/reportes",
   usuarios: "/usuarios",

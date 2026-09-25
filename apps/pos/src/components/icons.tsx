@@ -208,6 +208,7 @@ export const ICONO_SECCION = {
   inicio: IconInicio,
   venta: IconVenta,
   inventario: IconInventario,
+  mermas: IconMermas,
   produccion: IconProduccion,
   reportes: IconReportes,
   usuarios: IconUsuarios,
@@ -249,6 +250,26 @@ export function IconMic({ className }: IconProps) {
       <path d="M5 10a7 7 0 0014 0" />
       <path d="M12 19v3" />
       <path d="M8 22h8" />
+    </svg>
+  );
+}
+
+export function IconMermas({ className }: IconProps) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 3h6l1 4H8l1-4z" />
+      <path d="M6 7h12l-1.2 12.5a2 2 0 0 1-2 1.5H9.2a2 2 0 0 1-2-1.5L6 7z" />
+      <path d="M10 11v5M14 11v5" />
     </svg>
   );
 }

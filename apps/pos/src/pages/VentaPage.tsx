@@ -3,12 +3,12 @@ import { apiFetch } from "../api/client";
 import { useAuthStore } from "../store/auth.store";
 import { useTurnoStore } from "../store/turno.store";
 import { useTicketsStore, useTicketActivo } from "../store/tickets.store";
-import AperturaTurno from "../components/AperturaTurno";
 import ProductoCard from "../components/ProductoCard";
 import AppHeader from "../components/layout/AppHeader";
 import NavTabs from "../components/layout/NavTabs";
 import TicketPanel from "../components/ticket/TicketPanel";
 import TicketSheet from "../components/ticket/TicketSheet";
+import AvisoAbrirTurno from "../components/ticket/AvisoAbrirTurno";
 import { IconSearch, IconMic } from "../components/icons";
 import { interpretarComandoVoz } from "../utils/comandoVoz";
 
@@ -31,75 +31,94 @@ export default function VentaPage() {
   const [escuchando, setEscuchando] = useState(false);
   const [mensajeVoz, setMensajeVoz] = useState<string | null>(null);
 
+  const [avisoTurno, setAvisoTurno] = useState<{
+    despuesDe: () => void;
+  } | null>(null);
+
   useEffect(() => {
     cargarTurnoActual();
   }, [cargarTurnoActual]);
 
   useEffect(() => {
-    if (!turno) return;
     apiFetch<ProductoApi[]>("/productos", { token }).then(setProductos);
-  }, [turno, token]);
-
-  if (cargandoTurno) {
-    return <div className="min-h-screen bg-paper" />;
-  }
-
-  if (!turno) {
-    return <AperturaTurno />;
-  }
+  }, [token]);
 
   const productosVendibles = productos
     .filter((p) => p.tipo !== "INSUMO" && p.precioVenta !== null)
     .filter((p) => p.nombre.toLowerCase().includes(busqueda.toLowerCase()));
 
-  function handleVoz() {
-    const SpeechRecognitionCtor =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognitionCtor) {
-      setMensajeVoz(
-        "Tu navegador no soporta reconocimiento de voz (usa Chrome o Edge).",
-      );
+  function conTurnoAbierto(accion: () => void) {
+    if (turno) {
+      accion();
       return;
     }
+    setAvisoTurno({ despuesDe: accion });
+  }
 
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = "es-CO";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+  function handleAgregarProducto(p: ProductoApi) {
+    conTurnoAbierto(() => {
+      agregarProducto(ticket.id, {
+        id: p.id,
+        nombre: p.nombre,
+        precioVenta: Number(p.precioVenta),
+        aplicaInc: p.aplicaInc,
+      });
+    });
+  }
 
-    setEscuchando(true);
-    setMensajeVoz(null);
+  function handleVoz() {
+    conTurnoAbierto(() => {
+      const SpeechRecognitionCtor =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
 
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript as string;
-      const resultado = interpretarComandoVoz(transcript, productosVendibles);
-
-      if (resultado) {
-        for (let i = 0; i < resultado.cantidad; i++) {
-          agregarProducto(ticket.id, {
-            id: resultado.producto.id,
-            nombre: resultado.producto.nombre,
-            precioVenta: Number(resultado.producto.precioVenta),
-            aplicaInc: resultado.producto.aplicaInc,
-          });
-        }
+      if (!SpeechRecognitionCtor) {
         setMensajeVoz(
-          `Agregado: ${resultado.cantidad} × ${resultado.producto.nombre}`,
+          "Tu navegador no soporta reconocimiento de voz (usa Chrome o Edge).",
         );
-      } else {
-        setMensajeVoz(`No entendí "${transcript}". Intenta de nuevo.`);
+        return;
       }
-    };
 
-    recognition.onerror = () => {
-      setMensajeVoz("No se pudo escuchar. Intenta de nuevo.");
-    };
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = "es-CO";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-    recognition.onend = () => setEscuchando(false);
+      setEscuchando(true);
+      setMensajeVoz(null);
 
-    recognition.start();
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript as string;
+        const resultado = interpretarComandoVoz(transcript, productosVendibles);
+
+        if (resultado) {
+          for (let i = 0; i < resultado.cantidad; i++) {
+            agregarProducto(ticket.id, {
+              id: resultado.producto.id,
+              nombre: resultado.producto.nombre,
+              precioVenta: Number(resultado.producto.precioVenta),
+              aplicaInc: resultado.producto.aplicaInc,
+            });
+          }
+
+          setMensajeVoz(
+            `Agregado: ${resultado.cantidad} × ${resultado.producto.nombre}`,
+          );
+        } else {
+          setMensajeVoz(`No entendí "${transcript}". Intenta de nuevo.`);
+        }
+      };
+
+      recognition.onerror = () =>
+        setMensajeVoz("No se pudo escuchar. Intenta de nuevo.");
+      recognition.onend = () => setEscuchando(false);
+
+      recognition.start();
+    });
+  }
+
+  if (cargandoTurno) {
+    return <div className="min-h-screen bg-paper" />;
   }
 
   return (
@@ -138,20 +157,13 @@ export default function VentaPage() {
             <p className="text-xs text-ink/50 mb-3">{mensajeVoz}</p>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-24 md:pb-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pb-24 md:pb-0 mt-3">
             {productosVendibles.map((p) => (
               <ProductoCard
                 key={p.id}
                 nombre={p.nombre}
                 precioVenta={Number(p.precioVenta)}
-                onClick={() =>
-                  agregarProducto(ticket.id, {
-                    id: p.id,
-                    nombre: p.nombre,
-                    precioVenta: Number(p.precioVenta),
-                    aplicaInc: p.aplicaInc,
-                  })
-                }
+                onClick={() => handleAgregarProducto(p)}
               />
             ))}
           </div>
@@ -160,6 +172,16 @@ export default function VentaPage() {
 
       <TicketPanel />
       <TicketSheet />
+
+      {avisoTurno && (
+        <AvisoAbrirTurno
+          onListo={() => {
+            avisoTurno.despuesDe();
+            setAvisoTurno(null);
+          }}
+          onCancelar={() => setAvisoTurno(null)}
+        />
+      )}
     </div>
   );
 }

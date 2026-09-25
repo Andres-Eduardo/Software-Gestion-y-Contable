@@ -14,11 +14,16 @@ interface ProductoApi {
   tipo: string;
 }
 
+const UMBRAL_STOCK_BAJO = 10;
+
 export default function InventarioPage() {
   const token = useAuthStore((s) => s.token)!;
   const usuario = useAuthStore((s) => s.usuario);
   const esAdminOGerente =
     usuario?.rol === "ADMIN" || usuario?.rol === "GERENTE";
+  const esDomiciliario = usuario?.rol === "DOMICILIARIO";
+  const puedeGestionarSede = esAdminOGerente || esDomiciliario;
+  const puedeCrearTraslado = esAdminOGerente || esDomiciliario;
 
   const { sedes, cargarSedes } = useSedesStore();
   const {
@@ -26,6 +31,7 @@ export default function InventarioPage() {
     stockPorProducto,
     cargarMovimientos,
     cargarStock,
+
     solicitarTraslado,
     despachar,
     confirmar,
@@ -67,20 +73,26 @@ export default function InventarioPage() {
     e.preventDefault();
     if (!bodegaCentral || !sedeVista) return;
     setError(null);
-
     setEnviando(true);
     try {
-      await solicitarTraslado(token, {
+      const creado = await solicitarTraslado(token, {
         productoId,
         bodegaOrigenId: bodegaCentral.id,
         bodegaDestinoId: sedeVista,
         cantidad: Number(cantidad),
       });
+
+      // El domiciliario ya lleva el producto físicamente al registrarlo,
+      // así que se despacha solo en el mismo paso — un solo toque para él.
+      if (esDomiciliario) {
+        await despachar(token, creado.id);
+      }
+
       setProductoId("");
       setCantidad("");
       setMostrarForm(false);
     } catch (err: any) {
-      setError(err.message ?? "No se pudo solicitar");
+      setError(err.message ?? "No se pudo registrar el traslado");
     } finally {
       setEnviando(false);
     }
@@ -88,6 +100,7 @@ export default function InventarioPage() {
 
   async function handleDespachar(id: string) {
     setAccionando(id);
+
     setError(null);
     try {
       await despachar(token, id);
@@ -100,7 +113,6 @@ export default function InventarioPage() {
 
   async function handleConfirmar(id: string) {
     setAccionando(id);
-
     setError(null);
     try {
       await confirmar(token, id);
@@ -113,11 +125,14 @@ export default function InventarioPage() {
 
   function puedeDespachar(m: (typeof movimientos)[number]) {
     if (m.estado !== "SOLICITADO") return false;
-    return esAdminOGerente || usuario?.rol === "DOMICILIARIO";
+    return esAdminOGerente || esDomiciliario;
   }
 
   function puedeConfirmar(m: (typeof movimientos)[number]) {
     if (m.estado !== "DESPACHADO") return false;
+    // El domiciliario NUNCA puede confirmar su propia entrega, sin importar
+    // qué sede tenga asignada — la confirmación es exclusiva de quien recibe.
+    if (esDomiciliario) return false;
     return esAdminOGerente || m.bodegaDestinoId === usuario?.sedeId;
   }
 
@@ -127,23 +142,19 @@ export default function InventarioPage() {
       <NavTabs />
 
       <div className="p-4 md:p-8 max-w-4xl">
-        {/* Encabezado: título + selector de sede (Admin) + botón solicitar, mismo patrón en ambos tamaños */}
-        <div className="flex items-start md:items-center justify-between mb-1 md:mb-1">
+        <div className="flex items-start md:items-center justify-between mb-1">
           <div>
             <h1 className="font-display text-2xl md:text-3xl text-espresso">
               Inventario
             </h1>
-            <p className="hidden md:block text-ink/60 text-sm mt-1">
-              Stock por sede, solicitudes de reabastecimiento y traslados.
-            </p>
-            {esAdminOGerente && sedeVista && (
+            {puedeGestionarSede && sedeVista && (
               <p className="md:hidden text-ink/50 text-xs mt-0.5">
                 {nombreSedeVista}
               </p>
             )}
           </div>
           <div className="flex gap-2 shrink-0">
-            {esAdminOGerente && (
+            {puedeGestionarSede && (
               <button
                 onClick={() => setMostrarSelectorSede((v) => !v)}
                 aria-label="Cambiar sede"
@@ -153,23 +164,22 @@ export default function InventarioPage() {
                 <span className="hidden md:inline">{nombreSedeVista}</span>
               </button>
             )}
-            {sedeVista && (
+            {puedeCrearTraslado && sedeVista && (
               <button
                 onClick={() => setMostrarForm((v) => !v)}
-                aria-label="Solicitar reabastecimiento"
+                aria-label="Nuevo traslado"
                 className="w-9 h-9 md:w-auto md:px-4 rounded-lg bg-caramel text-espresso flex items-center justify-center gap-1.5 text-sm font-semibold hover:brightness-95 transition"
               >
                 <IconPlus className="md:hidden" />
-                <span className="hidden md:inline">+ Solicitar</span>
+                <span className="hidden md:inline">+ Nuevo traslado</span>
               </button>
             )}
           </div>
         </div>
 
-        {esAdminOGerente && mostrarSelectorSede && (
+        {puedeGestionarSede && mostrarSelectorSede && (
           <div className="bg-white border border-ink/10 rounded-xl p-4 mt-3 mb-2">
             <label className="block text-sm text-ink/70 mb-1">Ver sede</label>
-
             <select
               value={sedeVista}
               onChange={(e) => {
@@ -188,14 +198,13 @@ export default function InventarioPage() {
           </div>
         )}
 
-        {sedeVista && mostrarForm && (
+        {puedeCrearTraslado && sedeVista && mostrarForm && (
           <form
             onSubmit={handleSolicitar}
             className="bg-white border border-ink/10 rounded-xl p-4 mt-3 mb-2 space-y-3"
           >
-            <p className="text-sm font-medium text-ink">
-              Solicitar reabastecimiento
-            </p>
+            <p className="text-sm font-medium text-ink">Nuevo traslado</p>
+
             <select
               value={productoId}
               onChange={(e) => setProductoId(e.target.value)}
@@ -238,17 +247,28 @@ export default function InventarioPage() {
               Stock actual
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {productos.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white border border-ink/10 rounded-lg p-3"
-                >
-                  <p className="text-sm text-ink">{p.nombre}</p>
-                  <p className="text-caramel font-semibold tabular-nums">
-                    {stockPorProducto[p.id] ?? "—"}
-                  </p>
-                </div>
-              ))}
+              {productos.map((p) => {
+                const stock = stockPorProducto[p.id];
+                const stockBajo =
+                  stock !== undefined && stock <= UMBRAL_STOCK_BAJO;
+                return (
+                  <div
+                    key={p.id}
+                    className={`bg-white border rounded-lg p-3 ${
+                      stockBajo ? "border-brick/40" : "border-ink/10"
+                    }`}
+                  >
+                    <p className="text-sm text-ink">{p.nombre}</p>
+                    <p
+                      className={`font-semibold tabular-nums ${
+                        stockBajo ? "text-brick" : "text-caramel"
+                      }`}
+                    >
+                      {stock ?? "—"}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -324,8 +344,9 @@ export default function InventarioPage() {
                   </span>
                 </div>
                 <p className="text-xs text-ink/50 mb-2">
-                  {m.bodegaOrigen?.nombre ?? "—"} →{" "}
-                  {m.bodegaDestino?.nombre ?? "—"} · {m.cantidad} un
+                  {puedeGestionarSede
+                    ? `${m.bodegaOrigen?.nombre ?? "—"} → ${m.bodegaDestino?.nombre ?? "—"} · ${m.cantidad} un`
+                    : `${m.cantidad} un`}
                 </p>
                 {(puedeDespachar(m) || puedeConfirmar(m)) && (
                   <div className="flex gap-3">

@@ -20,17 +20,21 @@ export interface ClienteSeleccionado {
   dv?: number | null;
 }
 
+export type MedioPagoTipo = "EFECTIVO" | "ELECTRONICO";
+export type MedioPagoElectronico = "NEQUI" | "BANCOLOMBIA" | "TRANSFERENCIA";
+
 export interface Ticket {
   id: string;
   items: ItemCarrito[];
   esCredito: boolean;
   cliente: ClienteSeleccionado | null;
+  medioPagoTipo: MedioPagoTipo;
+  medioPagoElectronico: MedioPagoElectronico;
 }
 
 interface TicketsState {
   tickets: Ticket[];
   ticketActivoId: string;
-
   ventasCerradasCount: number;
   nuevoTicket: () => void;
   cerrarTicket: (ticketId: string) => void;
@@ -39,6 +43,11 @@ interface TicketsState {
   asignarCliente: (
     ticketId: string,
     cliente: ClienteSeleccionado | null,
+  ) => void;
+  setMedioPagoTipo: (ticketId: string, tipo: MedioPagoTipo) => void;
+  setMedioPagoElectronico: (
+    ticketId: string,
+    medio: MedioPagoElectronico,
   ) => void;
   agregarProducto: (ticketId: string, producto: ProductoVenta) => void;
   incrementar: (ticketId: string, productoId: string) => void;
@@ -53,6 +62,8 @@ function crearTicketVacio(): Ticket {
     items: [],
     esCredito: false,
     cliente: null,
+    medioPagoTipo: "EFECTIVO",
+    medioPagoElectronico: "NEQUI",
   };
 }
 
@@ -100,6 +111,20 @@ export const useTicketsStore = create<TicketsState>()(
         set((state) => ({
           tickets: state.tickets.map((t) =>
             t.id === ticketId ? { ...t, cliente } : t,
+          ),
+        })),
+
+      setMedioPagoTipo: (ticketId, tipo) =>
+        set((state) => ({
+          tickets: state.tickets.map((t) =>
+            t.id === ticketId ? { ...t, medioPagoTipo: tipo } : t,
+          ),
+        })),
+
+      setMedioPagoElectronico: (ticketId, medio) =>
+        set((state) => ({
+          tickets: state.tickets.map((t) =>
+            t.id === ticketId ? { ...t, medioPagoElectronico: medio } : t,
           ),
         })),
 

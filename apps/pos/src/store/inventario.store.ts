@@ -34,7 +34,7 @@ interface InventarioState {
       cantidad: number;
       observaciones?: string;
     },
-  ) => Promise<void>;
+  ) => Promise<{ id: string }>;
   despachar: (token: string, id: string) => Promise<void>;
   confirmar: (token: string, id: string) => Promise<void>;
 }
@@ -72,12 +72,13 @@ export const useInventarioStore = create<InventarioState>((set, get) => ({
   },
 
   solicitarTraslado: async (token, datos) => {
-    await apiFetch("/movimientos-inventario", {
+    const creado = await apiFetch<{ id: string }>("/movimientos-inventario", {
       method: "POST",
       token,
       body: JSON.stringify(datos),
     });
     await get().cargarMovimientos(token);
+    return creado;
   },
 
   despachar: async (token, id) => {
